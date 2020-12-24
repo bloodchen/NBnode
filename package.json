@@ -1,0 +1,64 @@
+{
+  "name": "nb-resolver",
+  "version": "0.1.8",
+  "description": "NBDomain http server.",
+  "main": "sdk/setup.js",
+  "files": [
+    "api/http_tp.js",
+    "sdk/nid_updater.js",
+    "sdk/reset_db.js",
+    "sdk/tx_sync.js",
+    "sdk/bitSync.js",
+    "sdk/setup.js",
+    "sdk/nbdomain_core.js",
+    "sdk/bsvutil.js",
+    "sdk/util.js",
+    "sdk/config.js",
+    "sdk/cmd.js",
+    "sdk/sqldb.js",
+    "sdk/sqldb/nbdomain.db",
+    "nb.config.js",
+    "nbservice.js",
+    "README.md"
+  ],
+  "directories": {
+    "bin": "./bin"
+  },
+  "bin": {
+    "http_tp": "bin/http_tp",
+    "setup_db": "bin/setup_db",
+    "tx_sync": "bin/tx_sync",
+    "nidupdater": "bin/tx_sync",
+    "nbresolver": "bin/nbresolver"
+  },
+  "author": "nbdomain-dev",
+  "license": "MIT",
+  "dependencies": {
+    "async-lock": "^1.2.4",
+    "axios": "^0.19.2",
+    "better-sqlite3": "^7.1.0",
+    "bitidentity": "^1.0.33",
+    "bitsocket-connect": "1.4.0",
+    "body": "^5.1.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "eventsource": "^1.0.7",
+    "express": "^4.17.1",
+    "filepay": "^2.2.12",
+    "glob": "^7.1.6",
+    "http-proxy": "^1.18.1",
+    "lockfile": "^1.0.4",
+    "minercraft": "0.0.8",
+    "nblib": "^1.0.62",
+    "node-cron": "^2.0.3",
+    "node-fetch": "^2.6.0",
+    "planariette": "^1.0.11",
+    "pm2": "^4.5.0",
+    "routes-router": "^4.3.1",
+    "sqlite3": "^4.1.1"
+  },
+  "devDependencies": {
+    "http-proxy-middleware": "^1.0.6"
+  }
+}
