@@ -8,24 +8,6 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const config = require('./core/config.js');
 const defaultConfig = config[config.env];
 
-var module_dict = {};
-
-
- 
-//glob.sync( './modules/**/index.js' ).forEach( function( file ) {
-/*  let dash = file.split("/");
-  if(dash.length == 4) {
-  	let module_name = dash[2];
-    module_dict[module_name] = require(file);
-    module_dict[module_name](random_port);
-    port_dict[module_name] = random_port;
-    random_port += 10;
-  }
-}); */
-
-
-
-
 app.listen(defaultConfig.node_port,async function(){
   console.log(`NBnode server started on port ${defaultConfig.node_port}...`)
 
