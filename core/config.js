@@ -6,7 +6,6 @@ var config = {
         "node_port": 9000,
         "proxy_map" : {
             "/api/": "api",
-            "/admin/": "admin",
             "/web/": "web",
         },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
