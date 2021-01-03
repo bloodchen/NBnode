@@ -61,6 +61,109 @@ const ADDRESS = 'address';
 
 
 
+/**
+ * Class to write data to BSV network.
+ */
+class BSVWriter {
+
+  /**
+   * @param {!string} endPoint An endpoint to connect.
+   * @param {!string>} minerFee Miner fee to record each transaction.
+   */
+  constructor(endPoint, minerFeeb) {
+    this.rpc = endPoint;
+    this.feeb = minerFeeb;
+  }
+
+  createRegDataPayConfigHeader(configData) {
+    if (!Util.isValidString(configData.nid)) {
+      return null;
+    }
+
+    var config = {
+      api_key: FILEPAY_API_KEY,
+      safe: true,
+      data: [configData.protocol, configData.nid, configData.command, configData.ownerPublicKey],
+      pay: {
+        key: configData.privateKey,
+        rpc: this.rpc,
+        feeb: this.feeb,
+      }
+    }
+
+    if (configData.extra != null) {
+      config.data.push(configData.extra);
+    }
+
+    if (configData.agent != null) {
+      config.data.push(configData.agent);
+    } else {
+      config.data.push(DEFAULT_AGENT);
+    }
+
+    config.pay.to = [];
+
+    config.pay.to = config.pay.to.concat(
+      [{ protocol: "BITIDENTITY", value: { privateKey: configData.privateKey } }]
+    );
+
+    if (configData.nutxo != null) {
+      config.pay.to = config.pay.to.concat(
+        [{ script:configData.nutxo.script,value:configData.nutxo.value}]
+      );
+
+      if (configData.command == CMD.ACCEPT && configData.last_txid) {
+        config.pay.inputs = [
+          {
+            txid: configData.last_txid,
+            value: configData.nutxo.value,
+            script: configData.nutxo.script,
+            outputIndex: 3, // Special UTXO to admin in sell transaction.
+            required: true,
+            unlockingScript: function (tx, index, satoshis, script, key) {
+              return NBLib._genNUTXOinputScript(tx, index, satoshis, script, key);
+            },
+          }
+        ];
+      }
+    }
+
+    return config;
+  }
+
+  writeTxToBSV(exportedTx, sign, callback) {
+    // Later import exportedTxHex and sign it with privatkey, and broadcast, all in one method:
+    let resp = { code: NO_ERROR };
+    this.sendTxToMinder(exportedTx).then(r => {
+      if (r.returnResult !== "success") {
+        resp.code = ERROR_UNKNOWN;
+        resp.message = r.resultDescription;
+      } else {
+        resp.tx = r.txid;
+        resp.message = "Transation succeed. tx=" + r.txid;
+      }
+      callback(resp);
+    }).catch(err => {
+      console.log(err);
+      callback({ code: ERROR_UNKNOWN, message: err });
+    });
+  }
+
+  async sendTxToMinder(exportedTx) {
+    const miner = new Minercraft({
+      // url: "https://merchantapi.matterpool.io",
+      url: "https://www.ddpurse.com/openapi",
+      headers: {
+        "Content-Type": "application/json",
+        token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
+      }
+    })
+
+    return await miner.tx.push(exportedTx);
+  }
+
+}
+
 class NidFetcher {
 
   constructor() {
@@ -263,6 +366,7 @@ class NIDManager {
    */
   constructor(protocol) {
     this.nidFetcher = new NidFetcher();
+    this.bsvWriter = new BSVWriter(DATAPAY_ENDPOINT, DATAPAY_MINER_FEEB);
     this.transMap = null;
     this.singleInstCache = {};
     this.nidObjMap = {};  // Only used when load fetch all NIDs.
@@ -288,7 +392,8 @@ class NIDManager {
   async initSync() {
     await NBLib.init({
       // API: "https://manage.nbdomain.com/node/", //resolver endpoint 
-      API: "http://localhost:"+defaultConfig.node_port+"/api/", //resolver endpoint 
+      API: "http://localhost:9000/api/", //resolver endpoint 
+      adminAPI: "http://localhost:9000/admin/",
       minerAPI: "https://merchantapi.taal.com", //endpoint of miner API
       token: "111", //api token required by resolver
       debug: true, //enable debug or not. 
@@ -365,7 +470,17 @@ class NIDManager {
         let ext = {
           pay_txid: payTxHash
         }
-        
+        const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
+        var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
+          nid: this.nid,
+          protocol: this.protocol,
+          command: CMD.REGISTER,
+          privateKey: this.getRegKey(),
+          ownerPublicKey: ownerPublicKey,
+          agent: null,
+          extra: JSON.stringify(ext),
+          nutxo: NBLib._genNUTXO(addr, 2)
+        });
         let resp = {code: NO_ERROR};
         let r = await NBLib.admin_regDomain(this.domain, this.getRegKey(), ownerPublicKey, payTxHash, null)
         if (r.returnResult !== "success") {
@@ -394,7 +509,18 @@ class NIDManager {
       pay_txid: payTxHash,
       sell_txid: sellTxid
     }
-    
+    const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
+    var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
+      nid: this.nid,
+      protocol: this.protocol,
+      command: CMD.ACCEPT,
+      privateKey: this.getRegKey(),
+      ownerPublicKey: ownerPublicKey,
+      agent: null,
+      extra: JSON.stringify(ext),
+      last_txid: sellTxid,
+      nutxo: NBLib._genNUTXO(addr, 2)
+    });
     let resp = {code: NO_ERROR};
     let r = await NBLib.admin_buyDomain(this.domain,this.getRegKey(),ownerPublicKey,sellTxid,payTxHash)
     if (r.returnResult !== "success") {
@@ -1620,6 +1746,7 @@ class CrossDBReader {
       return allDBresults;
   }
 }
+
 
 module.exports = {
   NidSynchronizer: NidSynchronizer,

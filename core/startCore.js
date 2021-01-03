@@ -4,8 +4,9 @@ const sqlDB = require('./sqldb.js');
 const CMD = require('./cmd.js');
 const Util = require('./util.js')
 const cron = require('node-cron');
-const AsyncLock = require('async-lock');
-var lock = new AsyncLock({maxPending: 5000});
+const plan = require('planariette');
+//const AsyncLock = require('async-lock');
+//var lock = new AsyncLock({maxPending: 5000});
 
 const defaultConfig = config[config.env];
 
@@ -40,11 +41,9 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 		}
 	};
 
-	await bit.run(TOKEN, nbQuery, async (tx, type) => {
-		lock.acquire(DB_SEQ_LOCK, async function () {
-			if (tx.tx.h == "8cc9473ca3287a2c3cfca422a671a8f06b1abe125755654b5a28d295ef550cba") {
-				console.log('debug');
-			}
+	//await bit.run(TOKEN, nbQuery, async (tx, type) => {
+		await plan.start(TOKEN,nbQuery,async (tx, type) => {
+		//lock.acquire(DB_SEQ_LOCK, async function () {
 			if (type == "c") {
 				let newTx = {
 					txHash: tx.tx.h,
@@ -106,10 +105,11 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 					console.log("Error", e.name);
 					console.log("Error", e.message);
 				}
-			}}).catch(function (err) {	
-				console.log(err.message) // output: error	
-			});
-	}, true);
+			};
+	}, ()=>{
+		console.log("AllFinish");
+		bFinish = true;
+	},false);
 })();
 
 cron.schedule('*/3 * * * *', () => {

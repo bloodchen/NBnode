@@ -7,6 +7,7 @@ var config = {
         "proxy_map" : {
             "/api/": "api",
             "/web/": "web",
+            "/admin/":"admin"
         },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
         "auth_file": "/Users/xiaodao/development/BSV/nbservice.conf",
