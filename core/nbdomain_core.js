@@ -75,7 +75,7 @@ class BSVWriter {
     this.feeb = minerFeeb;
   }
 
-  createRegDataPayConfigHeader(configData) {
+ /* createRegDataPayConfigHeader(configData) {
     if (!Util.isValidString(configData.nid)) {
       return null;
     }
@@ -129,7 +129,7 @@ class BSVWriter {
     }
 
     return config;
-  }
+  } */
 
   writeTxToBSV(exportedTx, sign, callback) {
     // Later import exportedTxHex and sign it with privatkey, and broadcast, all in one method:
@@ -471,7 +471,7 @@ class NIDManager {
           pay_txid: payTxHash
         }
         const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
-        var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
+        /*var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
           nid: this.nid,
           protocol: this.protocol,
           command: CMD.REGISTER,
@@ -480,7 +480,7 @@ class NIDManager {
           agent: null,
           extra: JSON.stringify(ext),
           nutxo: NBLib._genNUTXO(addr, 2)
-        });
+        });*/
         let resp = {code: NO_ERROR};
         let r = await NBLib.admin_regDomain(this.domain, this.getRegKey(), ownerPublicKey, payTxHash, null)
         if (r.returnResult !== "success") {
@@ -510,7 +510,7 @@ class NIDManager {
       sell_txid: sellTxid
     }
     const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
-    var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
+    /*var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
       nid: this.nid,
       protocol: this.protocol,
       command: CMD.ACCEPT,
@@ -520,7 +520,7 @@ class NIDManager {
       extra: JSON.stringify(ext),
       last_txid: sellTxid,
       nutxo: NBLib._genNUTXO(addr, 2)
-    });
+    });*/
     let resp = {code: NO_ERROR};
     let r = await NBLib.admin_buyDomain(this.domain,this.getRegKey(),ownerPublicKey,sellTxid,payTxHash)
     if (r.returnResult !== "success") {
