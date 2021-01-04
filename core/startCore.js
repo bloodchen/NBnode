@@ -14,12 +14,8 @@ const TOKEN = "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxQzc5M0RkVjI0Q3
 const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';	
 
 (async () => {
-	const bitSync = require('./bitSync');
+	/*const bitSync = require('./bitSync');
 	const bit = new bitSync;
-	const fetcher = new BSVName.NidFetcher();
-	let tx_c = [];
-	let tx_u = [];
-	var bFinish = false;
 	bit.on("initGetFinish", () => {
 		console.log("AllFinish");
 		bFinish = true;
@@ -28,7 +24,12 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 	bit.on("NewBlock", (status) => {
 		console.log("------NewBlock--------");
 		console.log(status);
-	})
+	}) */
+	const fetcher = new BSVName.NidFetcher();
+	let tx_c = [];
+	let tx_u = [];
+	var bFinish = false;
+	
 
 	let allProtocols = Util.getAllRegProtocols();
 	let nbQuery = {
@@ -41,9 +42,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 		}
 	};
 
-	//await bit.run(TOKEN, nbQuery, async (tx, type) => {
 		await plan.start(TOKEN,nbQuery,async (tx, type) => {
-		//lock.acquire(DB_SEQ_LOCK, async function () {
 			if (type == "c") {
 				let newTx = {
 					txHash: tx.tx.h,
@@ -86,7 +85,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 					address: tx.in[0].e.a,
 					in: tx.in
 				}
-				console.log("Get unconfirmed tx." + tx.tx.h)
+				console.log("Get unconfirmed tx.", tx.tx.h)
 				try {
 					let rtxList = await fetcher.convertToRTXPromise([newTx]);
 					// fetcher.convertToRTX([newTx], function(rtxList) {
