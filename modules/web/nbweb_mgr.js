@@ -64,8 +64,11 @@ class nbweb_mgr {
         //res.send(frame_file);
         
       } else {
-        if(res_content.code != 102)
-          res.send(q.hostname + " is not registered.<p><a href='https://app.nbdomain.com'>Register</a>");
+        if(res_content.code != 102){
+          const domain = q.hostname.split('.');
+          const redirectUrl = "https://app.nbdomain.com/#/search?nid=" + domain[0] + "&tld=." + domain[1];
+          res.redirect(redirectUrl);
+        }
         else {
           res.send("No website at: "+q.hostname+".<p><a href='https://app.nbdomain.com'>Manage</a>");
         }

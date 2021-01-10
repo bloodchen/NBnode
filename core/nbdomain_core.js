@@ -42,15 +42,6 @@ const DEFAULT_AGENT = "";
 const SUB_PROTOCOL_MAP_ = defaultConfig.tld_config;
 const NID_CHECK_ENDPOINT = defaultConfig.nidcheck_endpoint;
 
-/**
- * DATAPAY query endpoint.
- */
-const DATAPAY_ENDPOINT = defaultConfig.filepay.endpoint;
-
-/**
- * Miner fee for BSVName transactions.
- */
-const DATAPAY_MINER_FEEB = defaultConfig.filepay.miner_feeb;
 
 // nid.lenth < 2 is invalid.
 const BATCH_READ_CONFIG = '$$$';
@@ -70,66 +61,10 @@ class BSVWriter {
    * @param {!string} endPoint An endpoint to connect.
    * @param {!string>} minerFee Miner fee to record each transaction.
    */
-  constructor(endPoint, minerFeeb) {
-    this.rpc = endPoint;
-    this.feeb = minerFeeb;
+  constructor() {
   }
 
- /* createRegDataPayConfigHeader(configData) {
-    if (!Util.isValidString(configData.nid)) {
-      return null;
-    }
-
-    var config = {
-      api_key: FILEPAY_API_KEY,
-      safe: true,
-      data: [configData.protocol, configData.nid, configData.command, configData.ownerPublicKey],
-      pay: {
-        key: configData.privateKey,
-        rpc: this.rpc,
-        feeb: this.feeb,
-      }
-    }
-
-    if (configData.extra != null) {
-      config.data.push(configData.extra);
-    }
-
-    if (configData.agent != null) {
-      config.data.push(configData.agent);
-    } else {
-      config.data.push(DEFAULT_AGENT);
-    }
-
-    config.pay.to = [];
-
-    config.pay.to = config.pay.to.concat(
-      [{ protocol: "BITIDENTITY", value: { privateKey: configData.privateKey } }]
-    );
-
-    if (configData.nutxo != null) {
-      config.pay.to = config.pay.to.concat(
-        [{ script:configData.nutxo.script,value:configData.nutxo.value}]
-      );
-
-      if (configData.command == CMD.ACCEPT && configData.last_txid) {
-        config.pay.inputs = [
-          {
-            txid: configData.last_txid,
-            value: configData.nutxo.value,
-            script: configData.nutxo.script,
-            outputIndex: 3, // Special UTXO to admin in sell transaction.
-            required: true,
-            unlockingScript: function (tx, index, satoshis, script, key) {
-              return NBLib._genNUTXOinputScript(tx, index, satoshis, script, key);
-            },
-          }
-        ];
-      }
-    }
-
-    return config;
-  } */
+ 
 
   writeTxToBSV(exportedTx, sign, callback) {
     // Later import exportedTxHex and sign it with privatkey, and broadcast, all in one method:
@@ -366,7 +301,7 @@ class NIDManager {
    */
   constructor(protocol) {
     this.nidFetcher = new NidFetcher();
-    this.bsvWriter = new BSVWriter(DATAPAY_ENDPOINT, DATAPAY_MINER_FEEB);
+    this.bsvWriter = new BSVWriter();
     this.transMap = null;
     this.singleInstCache = {};
     this.nidObjMap = {};  // Only used when load fetch all NIDs.
