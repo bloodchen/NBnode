@@ -112,7 +112,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 })();
 
 cron.schedule('*/3 * * * *', () => {
-	console.log("updating Failed BitFS link");
+	//console.log("updating Failed BitFS link");
 	let protocols = Util.getAllRegProtocols();
 	protocols.forEach( function(protocol) {
 		let sql = new sqlDB.SQLDB(protocol);
@@ -158,7 +158,7 @@ cron.schedule('*/3 * * * *', () => {
 let fetchingTx = {};
 
 cron.schedule('*/1 * * * *', () => {
-    console.log("updating NID nidSyncer");
+    //console.log("updating NID nidSyncer");
     let protocols = Util.getAllRegProtocols();
 	protocols.forEach( function(protocol) {
         if (!protocol in fetchingTx) {
