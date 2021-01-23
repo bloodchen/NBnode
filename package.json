@@ -34,7 +34,6 @@
   "author": "nbdomain-dev",
   "license": "MIT",
   "dependencies": {
-    "async-lock": "^1.2.4",
     "axios": "^0.19.2",
     "better-sqlite3": "^7.1.0",
     "bitidentity": "^1.0.36",

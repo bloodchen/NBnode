@@ -7,17 +7,9 @@ var config = {
         "proxy_map" : {
             "/api/": "api",
             "/web/": "web",
-            "/admin/":"admin"
         },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
         "auth_file": "/Users/xiaodao/development/BSV/nbservice.conf",
-        "filepay": {
-            "endpoint": "https://api.mattercloud.net",
-            "miner_feeb": 0.9,
-            "minimum_payment": 548,
-            "network": "livenet",
-            "api_key": "44h9cKf4VHUvdpbRnG8KER1qCwx3oEjqho7TFBZv23BFgMtewE7k4kXPJbfv1EPQsi"
-        },
         "admin": {
             "transfer_fee":  1000, 
             "transfer_fee_rate": 0.1
