@@ -14,7 +14,7 @@ app.listen(defaultConfig.node_port,async function(){
 var proxyPassConfig = defaultConfig.proxy_map;
 
   for (uri in proxyPassConfig) {
-    let env = {node_port:defaultConfig.node_port}
+    let env = defaultConfig;
     let service_folder = proxyPassConfig[uri];
     const service = require('./modules/'+service_folder+'/index.js');
     const port = await service(env);

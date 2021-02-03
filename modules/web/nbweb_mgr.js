@@ -13,6 +13,7 @@ require('dotenv').config();
 class nbweb_mgr {
   async init(env){
     console.log(env);
+    this.env = env;
     await NBLib.init({
       API:"http://localhost:"+env.node_port+"/api/",
       token:process.env.NBToken, 
@@ -23,6 +24,7 @@ class nbweb_mgr {
   output_md(res,jsonReturn){
     let text_template =fs.readFileSync(__dirname + "/template/text.html").toString();
     let text = text_template.replace("**OBJ**",JSON.stringify(jsonReturn));
+    text = text.replace("nb://",this.env.urls.web);
     //console.log(text);
     res.send(text);
   }

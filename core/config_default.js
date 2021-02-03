@@ -8,6 +8,9 @@ var config = {
             "/api/": "api",
             "/web/": "web",
         },
+        "urls" : {
+            "web":"xxx"  //replace with your actual web service url, like https://api.nbdomain.com/web/ 
+        },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
         "auth_file": "/Users/xiaodao/development/BSV/nbservice.conf",
         "admin": {

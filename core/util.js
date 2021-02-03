@@ -126,7 +126,10 @@ class Util {
         }
         if (l > 2) {
             // NBdomain with subdomain.
-            return [parts[l-3], parts[l-2], parts[l-1]];
+            //return [parts[l-3], parts[l-2], parts[l-1]];
+            const tld = parts.pop();
+            const nid = parts.pop(); //delete tld and nid
+            return [parts.join('.'),nid,tld]; //return subdomain, can handle case like 1.abc.1010.test
         } 
         return null;
     }

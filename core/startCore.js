@@ -43,6 +43,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 	};
 
 		await plan.start(TOKEN,nbQuery,async (tx, type) => {
+			console.log("in callback");
 			if (type == "c") {
 				let newTx = {
 					txHash: tx.tx.h,
@@ -53,7 +54,9 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 					address: tx.in[0].e.a,
 					in: tx.in
 				}
+				console.log("before convertToRTXPromise");
 				let rtxList = await fetcher.convertToRTXPromise([newTx]);
+				console.log("after convertToRTXPromise");
 				// fetcher.convertToRTX([newTx], function(rtxList) {
 				if (rtxList.length > 0) {
 					let only = rtxList[0];
@@ -66,6 +69,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 					sql.appendLog([only]);
 					console.log(`Save confirmed ${only.hash}.`);
 					if (bFinish) {
+						console.log("in bFinish");
 						let i = tx_u.findIndex(tx1 => tx1.hash === rtxList[0].hash);
 						if (i != -1) {
 							console.log(`Found in unconfirmed tx,delete ${only.hash}`);
@@ -105,6 +109,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 					console.log("Error", e.message);
 				}
 			};
+			console.log("out callback");
 	}, ()=>{
 		console.log("AllFinish");
 		bFinish = true;
