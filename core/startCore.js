@@ -5,121 +5,158 @@ const CMD = require('./cmd.js');
 const Util = require('./util.js')
 const cron = require('node-cron');
 const plan = require('planariette');
+const bitBus = require('run-bitbus');
+const fs = require('fs');
 //const AsyncLock = require('async-lock');
 //var lock = new AsyncLock({maxPending: 5000});
 
 const defaultConfig = config[config.env];
 
 const TOKEN = "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxQzc5M0RkVjI0Q3NORTJFUDZNbVZmckhqVlNGVmc2dU4iLCJpc3N1ZXIiOiJnZW5lcmljLWJpdGF1dGgifQ.SUJlYUc2TGNGdFlZaGk3amxwa3ZoRGZJUEpFcGhObWhpdVNqNXVBbkxORTdLMWRkaGNESC81SWJmM2J1N0V5SzFuakpKTWFPNXBTcVJlb0ZHRm5uSi9VPQ";
-const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';	
+const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 
-(async () => {
-	/*const bitSync = require('./bitSync');
-	const bit = new bitSync;
-	bit.on("initGetFinish", () => {
-		console.log("AllFinish");
-		bFinish = true;
-	});
 
-	bit.on("NewBlock", (status) => {
-		console.log("------NewBlock--------");
-		console.log(status);
-	}) */
-	const fetcher = new BSVName.NidFetcher();
-	let tx_c = [];
-	let tx_u = [];
-	var bFinish = false;
-	
+async function processTX(tx, type) {
+	console.log("in callback");
+	if (type == "c") {
+		let newTx = {
+			txHash: tx.tx.h,
+			publicKey: tx.in[0].h1,
+			block: tx.blk.i,
+			ts: tx.blk.t,
+			out: tx.out,
+			address: tx.in[0].e.a,
+			in: tx.in
+		}
+		console.log("before convertToRTXPromise");
+		let rtxList = await fetcher.convertToRTXPromise([newTx]);
+		console.log("after convertToRTXPromise");
+		// fetcher.convertToRTX([newTx], function(rtxList) {
+		if (rtxList.length > 0) {
+			let only = rtxList[0];
+			tx_c.push(only);
 
-	let allProtocols = Util.getAllRegProtocols();
-	let nbQuery = {
-		"v": 3,
-		"q": {
-			"find": {
-				"out.s2": { "$in" : allProtocols }
-			},
-			"sort": { "blk.i": 1, "i": 1 }
+			let sql = new sqlDB.SQLDB(only.output.protocol);
+			if (only.output.protocol == "17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL") {
+				console.log('--------------------17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL');
+			}
+			sql.appendLog([only]);
+			console.log(`Save confirmed ${only.hash}.`);
+			if (bFinish) {
+				console.log("in bFinish");
+				let i = tx_u.findIndex(tx1 => tx1.hash === rtxList[0].hash);
+				if (i != -1) {
+					console.log(`Found in unconfirmed tx,delete ${only.hash}`);
+					tx_u.splice(i, 1);
+					sql.deleteUnconfirmedLog(rtxList[0].hash);
+				}
+			}
+		}
+		// });
+	}
+	if (type === "u" || type === "r") {
+		let newTx = {
+			txHash: tx.tx.h,
+			publicKey: tx.in[0].h1,
+			// block: tx.blk.i, unconfirmed tx has no block id.
+			out: tx.out,
+			address: tx.in[0].e.a,
+			in: tx.in
+		}
+		console.log("Get unconfirmed tx.", tx.tx.h)
+		try {
+			let rtxList = await fetcher.convertToRTXPromise([newTx]);
+			// fetcher.convertToRTX([newTx], function(rtxList) {
+			if (rtxList.length > 0) {
+				let only = rtxList[0];
+				tx_u.push(only);
+
+				let sql = new sqlDB.SQLDB(only.output.protocol);
+				sql.appendUnconfirmedLog([only]);
+				console.log(`Save unconfirmed ${only.hash}.`);
+			}
+
+			// });
+		} catch (e) {
+			console.log("Error", e.stack);
+			console.log("Error", e.name);
+			console.log("Error", e.message);
 		}
 	};
+	console.log("out callback");
 
-		await plan.start(TOKEN,nbQuery,async (tx, type) => {
-			console.log("in callback");
-			if (type == "c") {
-				let newTx = {
-					txHash: tx.tx.h,
-					publicKey: tx.in[0].h1,
-					block: tx.blk.i,
-					ts: tx.blk.t,
-					out: tx.out,
-					address: tx.in[0].e.a,
-					in: tx.in
-				}
-				console.log("before convertToRTXPromise");
-				let rtxList = await fetcher.convertToRTXPromise([newTx]);
-				console.log("after convertToRTXPromise");
-				// fetcher.convertToRTX([newTx], function(rtxList) {
-				if (rtxList.length > 0) {
-					let only = rtxList[0];
-					tx_c.push(only);
+}
+function saveHeight() {
+	const state = {
+		lastHeight: lastHeight
+	}
+	fs.writeFileSync(__dirname + "/state.json", JSON.stringify(state));
+}
+function loadHeight() {
+	try {
+		let data = fs.readFileSync(__dirname + "/state.json");
+		const state = JSON.parse(data);
+		lastHeight = state.lastHeight;
+	} catch (e) {
+		console.log(e);
+	}
+}
 
-					let sql = new sqlDB.SQLDB(only.output.protocol);
-					if (only.output.protocol == "17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL") {
-						console.log('--------------------17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL');
-					}
-					sql.appendLog([only]);
-					console.log(`Save confirmed ${only.hash}.`);
-					if (bFinish) {
-						console.log("in bFinish");
-						let i = tx_u.findIndex(tx1 => tx1.hash === rtxList[0].hash);
-						if (i != -1) {
-							console.log(`Found in unconfirmed tx,delete ${only.hash}`);
-							tx_u.splice(i, 1);
-							sql.deleteUnconfirmedLog(rtxList[0].hash);
-						}
-					}
-				}
-				// });
-			}
-			if (type === "u" || type === "r") {
-				let newTx = {
-					txHash: tx.tx.h,
-					publicKey: tx.in[0].h1,
-					// block: tx.blk.i, unconfirmed tx has no block id.
-					out: tx.out,
-					address: tx.in[0].e.a,
-					in: tx.in
-				}
-				console.log("Get unconfirmed tx.", tx.tx.h)
-				try {
-					let rtxList = await fetcher.convertToRTXPromise([newTx]);
-					// fetcher.convertToRTX([newTx], function(rtxList) {
-					if (rtxList.length > 0) {
-						let only = rtxList[0];
-						tx_u.push(only);
+let lastHeight = 0;
+let bFinish = false;
 
-						let sql = new sqlDB.SQLDB(only.output.protocol);
-						sql.appendUnconfirmedLog([only]);
-						console.log(`Save unconfirmed ${only.hash}.`);
-					}
+const fetcher = new BSVName.NidFetcher();
+let tx_c = [];
+let tx_u = [];
 
-					// });
-				} catch (e) {
-					console.log("Error", e.stack);
-					console.log("Error", e.name);
-					console.log("Error", e.message);
-				}
-			};
-			console.log("out callback");
-	}, ()=>{
-		console.log("AllFinish");
-		bFinish = true;
-	},false);
-})();
 
+let allProtocols = Util.getAllRegProtocols();
+//loadHeight(); //disable before solving the unconfirmed tx issue
+let nbQuery = {
+	"v": 3,
+	"from":lastHeight,
+	"q": {
+		"find": {
+			"out.s2": { "$in": allProtocols }
+		},
+		"sort": { "blk.i": 1, "i": 1 }
+	}
+};
+plan.start(TOKEN, nbQuery, processTX, () => {
+	console.log("AllFinish");
+	bitBus.getStatus().then(res => {
+		lastHeight = res.height - 1; //save current height but 1 less, in case miss a block
+	});
+	bFinish = true;
+	saveHeight();
+}, false);
+
+//update confirmed tx
+bFinish = true;
+cron.schedule('*/1 * * * *', async () => {
+	if (!bFinish) return;
+	//console.log("updating confirmed tx");
+	const res = await bitBus.getStatus();
+	//console.log(res);
+	if (lastHeight < res.height && lastHeight != 0) {
+		console.log("found new block, height=", res.height);
+		nbQuery.q.find['blk.i'] = { "$gt": lastHeight };
+		console.log(nbQuery);
+		await bitBus.run(TOKEN, nbQuery, async tx => {
+			console.log("got new confirmed tx", tx);
+			await processTX(tx, 'c');
+		}, null);
+		lastHeight = res.height;
+		saveHeight();
+	}
+	lastHeight = res.height;
+
+});
+
+//updating Failed BitFS link
 cron.schedule('*/3 * * * *', () => {
-	//console.log("updating Failed BitFS link");
 	let protocols = Util.getAllRegProtocols();
-	protocols.forEach( function(protocol) {
+	protocols.forEach(function (protocol) {
 		let sql = new sqlDB.SQLDB(protocol);
 
 		let retryList = sql.queryFailedBitFSLog();
@@ -157,29 +194,28 @@ cron.schedule('*/3 * * * *', () => {
 			});
 		}
 	});
-	
+
 });
 
+//Update NID 
 let fetchingTx = {};
-
 cron.schedule('*/1 * * * *', () => {
-    //console.log("updating NID nidSyncer");
-    let protocols = Util.getAllRegProtocols();
-	protocols.forEach( function(protocol) {
-        if (!protocol in fetchingTx) {
-            fetchingTx[protocol] = false;
-        }
-        if (!fetchingTx[protocol]) {
-            fetchingTx[protocol] = true;
-            const nidSyncer = new BSVName.NidSynchronizer(null, protocol);
-            nidSyncer.updateNidFiles(function(data) {
-                fetchingTx[protocol] = false;
-                // if (data.code == 0) {
-                //     log(`<<<Complete fetching NidObj: Successfully updated ${Object.keys(data.obj).length} nid object!`);
-                // } else {
-                //     log(`<<<Complete fetching NidObj: ${data.message}`);
-                // }
-            });
-        }
-    });
+	let protocols = Util.getAllRegProtocols();
+	protocols.forEach(function (protocol) {
+		if (!protocol in fetchingTx) {
+			fetchingTx[protocol] = false;
+		}
+		if (!fetchingTx[protocol]) {
+			fetchingTx[protocol] = true;
+			const nidSyncer = new BSVName.NidSynchronizer(null, protocol);
+			nidSyncer.updateNidFiles(function (data) {
+				fetchingTx[protocol] = false;
+				// if (data.code == 0) {
+				//     log(`<<<Complete fetching NidObj: Successfully updated ${Object.keys(data.obj).length} nid object!`);
+				// } else {
+				//     log(`<<<Complete fetching NidObj: ${data.message}`);
+				// }
+			});
+		}
+	});
 });
