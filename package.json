@@ -52,7 +52,7 @@
     "nblib": "^1.0.62",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
-    "planariette": "^1.0.11",
+    "planariette": "^1.0.14",
     "pm2": "^4.5.0",
     "routes-router": "^4.3.1",
     "sqlite3": "^4.1.1"

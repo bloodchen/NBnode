@@ -132,16 +132,16 @@ plan.start(TOKEN, nbQuery, processTX, () => {
 }, false);
 
 //update confirmed tx
-bFinish = true;
+
 cron.schedule('*/1 * * * *', async () => {
 	if (!bFinish) return;
 	//console.log("updating confirmed tx");
 	const res = await bitBus.getStatus();
 	//console.log(res);
 	if (lastHeight < res.height && lastHeight != 0) {
-		console.log("found new block, height=", res.height);
+		//console.log("found new block, height=", res.height);
 		nbQuery.q.find['blk.i'] = { "$gt": lastHeight };
-		console.log(nbQuery);
+		//console.log(nbQuery);
 		await bitBus.run(TOKEN, nbQuery, async tx => {
 			console.log("got new confirmed tx", tx);
 			await processTX(tx, 'c');
