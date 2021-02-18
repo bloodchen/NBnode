@@ -102,7 +102,7 @@ function loadHeight() {
 	}
 }
 
-let lastHeight = 0;
+let lastHeight = null;
 let bFinish = false;
 
 const fetcher = new BSVName.NidFetcher();
@@ -111,7 +111,7 @@ let tx_u = [];
 
 
 let allProtocols = Util.getAllRegProtocols();
-//loadHeight(); //disable before solving the unconfirmed tx issue
+loadHeight(); //disable before solving the unconfirmed tx issue
 let nbQuery = {
 	"v": 3,
 	"from":lastHeight,

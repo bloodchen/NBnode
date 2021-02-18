@@ -28,6 +28,10 @@ class nbweb_mgr {
     //console.log(text);
     res.send(text);
   }
+  async outputFromBitfs(res,path){
+
+    return false;
+  }
   async handleURL(res, addr) {
     addr = "https://" + addr;
     let q = url.parse(addr, true);
@@ -60,10 +64,7 @@ class nbweb_mgr {
           this.output_md(res,res_content)
           return
         }
-        //iframe version
-        //let frame_file=fs.readFileSync(__dirname + "/template/frame.html").toString();
-        //frame_file=frame_file.replace('**frame_url**',"https://dweb.link/ipfs/QmSThARuU9xbMkMRwrT2EyB2dFnHBsqJyfJ48zVV9yQzCC");
-        //res.send(frame_file);
+        
         
       } else {
         if(res_content.code != 102){
@@ -83,13 +84,39 @@ class nbweb_mgr {
     }
   }
   _parse_data(data) {
-    data = data.replace(/bitfs:\/\//gi, "/bitfs/");
-    data = data.replace(/ipfs:\/\//gi, "/ipfs/");
+   // data = data.replace(/bitfs:\/\//gi, "/bitfs/");
+   // data = data.replace(/ipfs:\/\//gi, "/ipfs/");
     return data;
   }
   async _handle_data(res, obj, q) {
     console.log(q.path);
-    let map_url = obj.urlmap[q.path];
+    if(obj.format.toLowerCase()=="ipfs"){
+      await ipfs.handle_Data(res,obj.url);
+      return;
+    }
+    let handled = false;
+    if(obj.format.toLowerCase()=="urlmap"){
+      let staticsMap = obj.statics[q.path];
+      console.log(staticsMap);
+      if (staticsMap != undefined) {
+        if (staticsMap.url.indexOf("bitfs:") == 0) { //bitfs protocol
+          let bit = new bitfs;
+          handled = await outputFromBitfs(res,staticsMap);
+        }else if(staticsMap.url.indexOf("base64:") == 0){ //base64 encoded
+
+        }else{
+          const data = staticsMap.data;
+          if(data){
+            res.end(data);
+            handled = true;
+          }
+        }
+    }
+    if(!handled){
+      res.end("404");
+    }
+   
+/*    let map_url = obj.urlmap[q.path];
     
     if(!map_url){ 
       map_url = obj.urlmap['/']+q.path;
@@ -111,10 +138,8 @@ class nbweb_mgr {
         await ipfs.handle_Data(res,map_url.slice(6));
         return;
       }
-     // let r = await axios.get(map_url); //other protocol
-      //res.end(r.data);
       return;
-    }
+    }*/
 
     res.end("404");
   }
