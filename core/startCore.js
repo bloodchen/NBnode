@@ -17,7 +17,6 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 
 
 async function processTX(tx, type) {
-	console.log("in callback");
 	if (type == "c") {
 		let newTx = {
 			txHash: tx.tx.h,
@@ -28,18 +27,14 @@ async function processTX(tx, type) {
 			address: tx.in[0].e.a,
 			in: tx.in
 		}
-		console.log("before convertToRTXPromise");
 		let rtxList = await fetcher.convertToRTXPromise([newTx]);
-		console.log("after convertToRTXPromise");
 		// fetcher.convertToRTX([newTx], function(rtxList) {
 		if (rtxList.length > 0) {
 			let only = rtxList[0];
 			tx_c.push(only);
 
 			let sql = new sqlDB.SQLDB(only.output.protocol);
-			if (only.output.protocol == "17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL") {
-				console.log('--------------------17mJU9XaV7KbY3n8Up4LHFQHh5x82eEThL');
-			}
+
 			sql.appendLog([only]);
 			console.log(`Save confirmed ${only.hash}.`);
 			if (bFinish) {
@@ -83,26 +78,29 @@ async function processTX(tx, type) {
 			console.log("Error", e.message);
 		}
 	};
-	console.log("out callback");
 
 }
-function saveHeight() {
-	const state = {
-		lastHeight: lastHeight
-	}
-	fs.writeFileSync(__dirname + "/state.json", JSON.stringify(state));
-}
+
 function loadHeight() {
 	try {
-		let data = fs.readFileSync(__dirname + "/state.json");
-		const state = JSON.parse(data);
-		lastHeight = state.lastHeight;
+		let protocols = Util.getAllRegProtocols();
+		protocols.forEach(function (protocol) {
+			let sql = new sqlDB.SQLDB(protocol);
+			let tx = sql.getLastLog();
+			let newHeight = 0;
+			if (tx != null) {
+				newHeight = tx['blockId'];
+			}
+			if (lastHeight < newHeight) {
+				lastHeight = newHeight
+			}
+		});
 	} catch (e) {
 		console.log(e);
 	}
 }
 
-let lastHeight = null;
+let lastHeight = 0;
 let bFinish = false;
 
 const fetcher = new BSVName.NidFetcher();
@@ -128,7 +126,6 @@ plan.start(TOKEN, nbQuery, processTX, () => {
 		lastHeight = res.height - 1; //save current height but 1 less, in case miss a block
 	});
 	bFinish = true;
-	saveHeight();
 }, false);
 
 //update confirmed tx
@@ -147,7 +144,6 @@ cron.schedule('*/1 * * * *', async () => {
 			await processTX(tx, 'c');
 		}, null);
 		lastHeight = res.height;
-		saveHeight();
 	}
 	lastHeight = res.height;
 

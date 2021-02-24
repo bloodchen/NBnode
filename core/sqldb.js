@@ -174,6 +174,10 @@ class SQLDB {
         }
     }
 
+    getLastLog() {
+        return this.getOne(`SELECT * FROM "transac" ORDER BY id DESC LIMIT 1`);
+    }
+
     queryLogById(dbTxId) {        
         return this.getAll(`SELECT * FROM "transac" WHERE id > ? ORDER BY id ASC LIMIT 2000`, dbTxId);
     }
