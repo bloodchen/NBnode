@@ -109,7 +109,7 @@ let tx_u = [];
 
 
 let allProtocols = Util.getAllRegProtocols();
-//loadHeight(); //disable before solving the unconfirmed tx issue
+loadHeight(); 
 let nbQuery = {
 	"v": 3,
 	"from":lastHeight,
