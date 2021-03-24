@@ -252,7 +252,7 @@ class NidFetcher {
               }
               let rtxVerified = BitID.verifyIDFromBitbus(rtx);
               if (!rtxVerified) {
-                console.log(`Failed to verify transaction signature.: ${rtx.hash}`);
+                console.error(`Failed to verify transaction signature.: ${rtx.hash}`);
                 continue;
                 // throw new SignatureValationError("Failed to verify transaction signature.");
               } else {

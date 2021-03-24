@@ -91,7 +91,7 @@ class nbweb_mgr {
   async _handle_data(res, obj, q) {
     console.log(q.path);
     if (obj.format.toLowerCase() == "ipfs") {
-      await ipfs.handle_Data(res, obj.url);
+      await ipfs.handle_Data(res, obj);
       return;
     }
     let handled = false;

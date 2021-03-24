@@ -139,11 +139,12 @@ cron.schedule('*/1 * * * *', async () => {
 		//console.log("found new block, height=", res.height);
 		nbQuery.q.find['blk.i'] = { "$gt": lastHeight };
 		//console.log(nbQuery);
+		lastHeight = res.height;
 		await bitBus.run(TOKEN, nbQuery, async tx => {
 			console.log("got new confirmed tx", tx);
 			await processTX(tx, 'c');
 		}, null);
-		lastHeight = res.height;
+		
 	}
 	lastHeight = res.height;
 
