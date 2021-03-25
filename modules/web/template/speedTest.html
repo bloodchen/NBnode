@@ -24,7 +24,7 @@
       }
       detectGateway().then( result=>{
         document.cookie = "IPFSgateway="+result;
-        document.querySelector("#msg").innerHTML = result;
+        document.querySelector("#msg").innerHTML = result+":"+window.location.href+":"+document.cookie;
         setTimeout("window.location.href = window.location.href",5000);
       })
   </script>
