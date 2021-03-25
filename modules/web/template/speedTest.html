@@ -3,6 +3,7 @@
     <title>Loading...</title>
   </head>
   <body>
+    <div id="msg">Loading...</div>
     <script>
       async function detectGateway() {
           return new Promise(resolve => {
@@ -23,7 +24,8 @@
       }
       detectGateway().then( result=>{
         document.cookie = "IPFSgateway="+result;
-        setTimeout("window.location.href = window.location.href",1000);
+        document.querySelector("#msg").innerHTML = result;
+        setTimeout("window.location.href = window.location.href",5000);
       })
   </script>
   </body>
