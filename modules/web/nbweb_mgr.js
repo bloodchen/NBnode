@@ -12,7 +12,7 @@ require('dotenv').config();
 
 class nbweb_mgr {
   async init(env) {
-    console.log(env);
+    //console.log(env);
     this.env = env;
     await NBLib.init({
       API: "http://localhost:" + env.node_port + "/api/",
@@ -32,10 +32,10 @@ class nbweb_mgr {
 
     return false;
   }
-  async handleURL(res, addr) {
+  async handleURL(req,res, addr) {
     addr = "https://" + addr;
     let q = url.parse(addr, true);
-    console.log(q);
+    //console.log(q);
     //let res_content = await reader.read_domain(q.hostname);
     //console.log(res_content);
     let hostname = punCode.toUnicode(q.hostname); //support unicode name
@@ -58,7 +58,7 @@ class nbweb_mgr {
 
         //console.log(obj)
         if (obj.t == "web") {
-          await this._handle_data(res, obj, q);
+          await this._handle_data(req,res, obj, q);
           return;
         } else {
           this.output_md(res, res_content)
@@ -88,10 +88,10 @@ class nbweb_mgr {
     // data = data.replace(/ipfs:\/\//gi, "/ipfs/");
     return data;
   }
-  async _handle_data(res, obj, q) {
+  async _handle_data(req, res, obj, q) {
     console.log(q.path);
     if (obj.format.toLowerCase() == "ipfs") {
-      await ipfs.handle_Data(res, obj);
+      await ipfs.handle_Data(req,res, obj,q.path);
       return;
     }
     let handled = false;

@@ -40,9 +40,14 @@ app.get("/*", async (req, res) => {
   console.log(path);
   const url = path.slice(1);
   console.log("url=", url);
+  if(url.slice(-2)==='.b'||url.slice(-5)==='.test'){
+    console.log("adding / to the end of NBdomain");
+    res.redirect(url+"/");
+    return;
+  }
   if (url.indexOf(".test") != -1 || url.indexOf(".b") != -1) {
     const tld_path = url;
-    nbMgr.handleURL(res, tld_path);
+    nbMgr.handleURL(req,res, tld_path);
   } else {
     res.end("ok");
   }

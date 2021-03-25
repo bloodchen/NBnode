@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <title>Test Template</title>
+  </head>
+  <body>
+    <script>
+      async function detectGateway() {
+          return new Promise(resolve => {
+              const gw = ["https://cloudflare-ipfs.com/ipfs/",
+                  "https://gateway.pinata.cloud/ipfs/",
+                  "https://ipfs.io/ipfs/",
+              ];
+              gw.forEach((item, i) => {
+                  fetch(item + "QmeCGMURVkuAFvE7dVrwrpNKXJdMkqgg1UVXmAwnBmZ2eS/").then(res => res.text()).then(txt => {
+                      if (txt == "helloNBdomain") {
+                          resolve(item);
+                          return;
+                      }
+                  })
+              })
+
+          })
+      }
+      detectGateway().then( result=>{
+        document.cookie = "IPFSgateway="+result;
+        location.reload();
+      })
+  </script>
+  </body>
+</html>
