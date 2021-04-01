@@ -3,7 +3,7 @@
     <title>Loading...</title>
   </head>
   <body>
-    <div id="msg">Loading...</div>
+    <div id="msg">Dectecting the fastest node...</div>
     <script>
       async function detectGateway() {
           return new Promise(resolve => {
@@ -24,8 +24,9 @@
       }
       detectGateway().then( result=>{
         document.cookie = "IPFSgateway="+result;
-        document.querySelector("#msg").innerHTML = result+":"+window.location.href+":"+document.cookie;
-        setTimeout("window.location.href = window.location.href",5000);
+        //document.querySelector("#msg").innerHTML = "Using:" + result;
+        console.log("Using:"+result);
+        setTimeout("window.location.href = window.location.href",1000);
       })
   </script>
   </body>
