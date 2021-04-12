@@ -10,8 +10,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const config = require("./core/config.js");
 const defaultConfig = config[config.env];
 let domainMap = {};
-
-const localGateway = "http://127.0.0.1:“+defaultConfig.node_port+”/web/";
+let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
 async function proxyRequest(req, res, path, nbdomain) {
   try {
     console.log("cookie:", req.headers.cookie);
