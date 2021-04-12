@@ -53,16 +53,25 @@ app.get("/*", async (req, res, next) => {
     return;
   }
   let nbdomain = domainMap[host];
+  if(nbdomain==="none"){ //already checked
+    next();return;
+  }
   if (!nbdomain) {
     nbdomain = await checkNBdomain(host);
     if (nbdomain) domainMap[host] = nbdomain;
     else {
+      domainMap[host] = "none";
       next();
       return;
     }
   }
   proxyRequest(req, res, req.path, nbdomain);
 });
+
+setInterval(()=>{
+  console.log("clear domainMap cache");
+  domainMap = []; //clear domainMap cache
+},60*1000);
 
 app.listen(defaultConfig.node_port, async function () {
   console.log(`NBnode server started on port ${defaultConfig.node_port}...`);
