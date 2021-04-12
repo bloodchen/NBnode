@@ -42,6 +42,7 @@ class ipfs{
       return true;
     } catch (e) {
       //console.log(e);
+      res.end(e.message);
       return false; 
     }
     //iframe version
