@@ -4,7 +4,6 @@ var cors = require("cors");
 var dns = require("dns");
 var axios = require("axios");
 var app = express();
-var glob = require("glob");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const config = require("./core/config.js");
@@ -13,7 +12,7 @@ let domainMap = {};
 let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
 async function proxyRequest(req, res, path, nbdomain) {
   try {
-    console.log("cookie:", req.headers.cookie);
+    //console.log("cookie:", req.headers.cookie);
     const url = localGateway + nbdomain + path;
     console.log("getting url:", url);
     let res1 = await axios.get(url, {
@@ -58,7 +57,7 @@ app.get("/*", async (req, res, next) => {
     nbdomain = await checkNBdomain(host);
     if (nbdomain) domainMap[host] = nbdomain;
     else {
-      res.end("404");
+      next();
       return;
     }
   }

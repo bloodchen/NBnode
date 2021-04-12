@@ -10,7 +10,7 @@ var get_cookies = function(request) {
     var parts = cookie.match(/(.*?)=(.*)$/)
     cookies[ parts[1].trim() ] = (parts[2] || '').trim();
   });
-  console.log(cookies)
+  //console.log(cookies)
   return cookies;
 };
 class ipfs{
