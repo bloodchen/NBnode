@@ -36,6 +36,7 @@ async function checkNBdomain(domain) {
         if (data[0][0]) {
           const nblink = data[0][0].split("=");
           if (nblink[0] === "nblink") {
+            console.log("found nblink:",nblink[1]);
             resolve(nblink[1]);
           }
         }
@@ -69,7 +70,7 @@ app.get("/*", async (req, res, next) => {
 });
 
 setInterval(()=>{
-  console.log("clear domainMap cache");
+  //console.log("clear domainMap cache");
   domainMap = []; //clear domainMap cache
 },60*1000);
 
