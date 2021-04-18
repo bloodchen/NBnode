@@ -2,6 +2,7 @@ var isBrowser = isBrowser || new Function("try {return this===window;}catch(e){ 
 
 var config = {
     "development": {
+        "exit_count":0, //exit the process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
         "config_id": "development",
         "node_port": 9000,
         "proxy_map" : {

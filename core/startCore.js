@@ -91,7 +91,7 @@ function loadHeight() {
 			if (tx != null) {
 				newHeight = tx['blockId'];
 			}
-			if (lastHeight < newHeight) {
+			if (!lastHeight||lastHeight < newHeight) {
 				lastHeight = newHeight
 			}
 		});
@@ -129,7 +129,7 @@ plan.start(TOKEN, nbQuery, processTX, () => {
 }, false);
 
 //update confirmed tx
-
+let exit_counter = 1;
 cron.schedule('*/1 * * * *', async () => {
 	if (!bFinish) return;
 	//console.log("updating confirmed tx");
@@ -147,6 +147,9 @@ cron.schedule('*/1 * * * *', async () => {
 		
 	}
 	lastHeight = res.height;
+	if(config.exit_count&& (exit_counter++>config.exit_count) ){ //exit process every hour, so the PM2 could restart it.
+		process.exit(-2);
+	}
 
 });
 
