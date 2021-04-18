@@ -147,7 +147,7 @@ cron.schedule('*/1 * * * *', async () => {
 		
 	}
 	lastHeight = res.height;
-	if(config.exit_count&& (exit_counter++>config.exit_count) ){ //exit process every hour, so the PM2 could restart it.
+	if(defaultConfig.exit_count&& (exit_counter++>defaultConfig.exit_count) ){ //exit process every hour, so the PM2 could restart it.
 		process.exit(-2);
 	}
 
