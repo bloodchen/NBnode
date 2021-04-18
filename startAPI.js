@@ -10,7 +10,7 @@ const config = require("./core/config.js");
 const defaultConfig = config[config.env];
 let domainMap = {};
 let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
-async function proxyRequest(req, res, path, nbdomain) {
+/*async function proxyRequest(req, res, path, nbdomain) {
   try {
     //console.log("cookie:", req.headers.cookie);
     const url = localGateway + nbdomain + path;
@@ -67,13 +67,13 @@ app.get("/*", async (req, res, next) => {
     }
   }
   proxyRequest(req, res, req.path, nbdomain);
-});
+}); 
 
 setInterval(()=>{
   //console.log("clear domainMap cache");
   domainMap = []; //clear domainMap cache
 },60*1000);
-
+*/
 app.listen(defaultConfig.node_port, async function () {
   console.log(`NBnode server started on port ${defaultConfig.node_port}...`);
 
