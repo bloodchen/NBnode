@@ -14,4 +14,4 @@ You need to have NodeJS to run NBnode.
 
 node:
 * you can change core/config.js to change the port number of the API.
-* you can use tools like pm2 to make the service running in background.
+* you can use tools like pm2 to make the service running in background. In this case, you can set exit_count:60 in config.js to make startCore.js restart every 60 minutes, to make it run more smoothly.
