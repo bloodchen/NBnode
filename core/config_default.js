@@ -3,8 +3,9 @@ var isBrowser = isBrowser || new Function("try {return this===window;}catch(e){ 
 var config = {
     "development": {
         "node_info":{
-            owner:"nbdomain.b", //owner of the node. Payment (if any) will goto this address.
-            domain:"api.nbdomain.com" //domain name of the node, for SSL certificate. Replace with real domain
+            owner:"nbdomain.b", //nbdomain of the owner. Payment (if any) will goto this address.
+            domain:"api.nbdomain.com", //domain name of the node, for SSL certificate. Replace with real domain
+            email:"" //contact email of the owner
         },
         "exit_count":0, //exit the process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
         "node_port": 9000,
