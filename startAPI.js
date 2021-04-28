@@ -50,7 +50,7 @@ async function checkNBdomain(domain) {
 appSSL.get("/*", async (req, res, next) => {
   const host = req.get("host");
   console.log(host);
-  if (host.indexOf("localhost") != -1 || host.indexOf("127.0.0.1") != -1) {
+  if (host.indexOf("localhost") != -1 || host.indexOf("127.0.0.1") != -1 || host.indexOf(defaultConfig.node_info.domain)!=-1) {
     console.log("got local call, ignore...")
     next();
     return;
@@ -89,6 +89,14 @@ app.listen(defaultConfig.node_port, async function () {
     const localAddr = "http://localhost:" + port;
     const pa = "^" + uri;
     app.use(
+      uri,
+      createProxyMiddleware({
+        target: localAddr,
+        changeOrigin: true,
+        pathRewrite: { [pa]: "" },
+      })
+    );
+    appSSL.use(
       uri,
       createProxyMiddleware({
         target: localAddr,
