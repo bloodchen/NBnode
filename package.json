@@ -20,6 +20,7 @@
     "express": "^4.17.1",
     "filepay": "^2.2.12",
     "glob": "^7.1.6",
+    "greenlock-express": "^4.0.3",
     "http-proxy": "^1.18.1",
     "http-proxy-middleware": "^1.0.6",
     "lockfile": "^1.0.4",

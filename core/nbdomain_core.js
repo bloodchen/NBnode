@@ -329,8 +329,8 @@ class NIDManager {
   async initSync() {
     await NBLib.init({
       // API: "https://manage.nbdomain.com/node/", //resolver endpoint 
-      API: "http://localhost:9000/api/", //resolver endpoint 
-      adminAPI: "http://localhost:9000/admin/",
+      API: "http://localhost:" + defaultConfig.node_port + "/api/",
+      adminAPI: "http://localhost:" + defaultConfig.node_port + "/admin/",
       minerAPI: "https://merchantapi.taal.com", //endpoint of miner API
       token: "111", //api token required by resolver
       debug: true, //enable debug or not. 
