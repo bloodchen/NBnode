@@ -7,14 +7,14 @@ var config = {
             domain:null, //domain name of the node, for SSL certificate. Replace with real domain
             email:"" //contact email of the owner
         },
-        "exit_count":0, //exit the process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
-        "node_port": 9000,
+        SSL:[], //SSL domains that this node will host.
+        "exit_count":0, //exit the crawl process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
+        "node_port": 9000, //local port of the http service
         "proxy_map" : {
             "/api/": "api",
             "/web/": "web",
         },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
-        "auth_file": "/Users/xiaodao/development/BSV/nbservice.conf",
         "admin": {
             "transfer_fee":  1000, 
             "transfer_fee_rate": 0.1

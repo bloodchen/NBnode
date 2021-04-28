@@ -123,7 +123,12 @@ if(defaultConfig.node_info.domain){
       subject: defaultConfig.node_info.domain,
       altnames: [defaultConfig.node_info.domain],
     });
-
+    defaultConfig.SSL.forEach(site=>{
+      greenlock.sites.add({
+        subject: site,
+        altnames: [site],
+      });
+    })
     const green = require('greenlock-express')
     .init(()=>{
       return {
