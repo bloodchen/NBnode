@@ -4,7 +4,8 @@ let endpoint = "https://cloudflare-ipfs.com/ipfs/";
 
 var get_cookies = function(request) {
   var cookies = {};
-  const strCookie = request.headers && request.headers.cookie;
+  if(!request.headers) return cookies;
+  const strCookie = request.headers.cookie;
   if(!strCookie) return cookies;
   strCookie && strCookie.split(';').forEach(function(cookie) {
     var parts = cookie.match(/(.*?)=(.*)$/)
