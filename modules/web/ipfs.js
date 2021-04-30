@@ -6,7 +6,8 @@ var get_cookies = function(request) {
   var cookies = {};
   if(!request.headers) return cookies;
   const strCookie = request.headers.cookie;
-  if(!strCookie) return cookies;
+  console.log(strCookie);
+  if(!strCookie||strCookie=="") return cookies;
   strCookie && strCookie.split(';').forEach(function(cookie) {
     var parts = cookie.match(/(.*?)=(.*)$/)
     cookies[ parts[1].trim() ] = (parts[2] || '').trim();
