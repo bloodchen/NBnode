@@ -8,19 +8,21 @@ var appSSL = express();
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const config = require("./core/config.js");
+const { domain } = require("process");
+const { request } = require("express");
 const defaultConfig = config[config.env];
 let domainMap = {};
 let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
 const SSLDir = "./ssl.d/";
 async function proxyRequest(req, res, path, nbdomain) {
   try {
-    //console.log("cookie:", req.headers.cookie);
+    const cookie = req.headers ? ( req.headers.cookie ? req.headers.cookie : {} )  : {};
     const url = localGateway + nbdomain + path;
     console.log("getting url:", url);
     let res1 = await axios.get(url, {
       method: "GET",
       withCredentials: true,
-      headers: { Cookie: req.headers.cookie },
+      headers: { Cookie: cookie },
       responseType: "stream",
     });
     res.set(res1.headers);
@@ -47,6 +49,11 @@ async function checkNBdomain(domain) {
     });
   });
 }
+appSSL.get("/site/add/", async (req, res) => {
+  console.log(req);
+  res.end("ok");
+});
+
 appSSL.get("/*", async (req, res, next) => {
   const host = req.get("host");
   console.log(host);
@@ -113,12 +120,25 @@ app.listen(defaultConfig.node_port, async function () {
 //Start HTTPS server
 if(defaultConfig.node_info.domain){
   (async()=>{
+    let domainError={};
     var greenlock = require('@root/greenlock').create({
       packageRoot: __dirname,
       configDir: SSLDir,
       maintainerEmail: defaultConfig.node_info.email,
+      notify: function(event, details) {
+        if ('error' === event) {
+            // `details` is an error object in this case
+            console.error("GL Error, subject:",details);
+            console.log("DE:",domainError);
+            (!domainError[details.subject])&&(domainError[details.subject]=0);
+            if(++domainError[details.subject]>2){
+              console.log("GL remove, subject:",details.subject);
+              greenlock.sites.remove({subject:details.subject});
+            }
+        }
+    }
     });
-    console.log(greenlock);
+    /*console.log(greenlock);
     const res = await greenlock.sites.add({
       subject: defaultConfig.node_info.domain,
       altnames: [defaultConfig.node_info.domain],
@@ -128,7 +148,7 @@ if(defaultConfig.node_info.domain){
         subject: site,
         altnames: [site],
       });
-    })
+    }) */
     const green = require('greenlock-express')
     .init(()=>{
       return {
