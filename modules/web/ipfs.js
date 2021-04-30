@@ -10,7 +10,8 @@ var get_cookies = function(request) {
   if(!strCookie||strCookie=="") return cookies;
   strCookie && strCookie.split(';').forEach(function(cookie) {
     var parts = cookie.match(/(.*?)=(.*)$/)
-    cookies[ parts[1].trim() ] = (parts[2] || '').trim();
+    if(parts)
+      cookies[ parts[1].trim() ] = (parts[2] || '').trim();
   });
   //console.log(cookies)
   return cookies;

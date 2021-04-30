@@ -16,7 +16,7 @@ let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
 const SSLDir = "./ssl.d/";
 async function proxyRequest(req, res, path, nbdomain) {
   try {
-    const cookie = req.headers ? ( req.headers.cookie ? req.headers.cookie : {} )  : {};
+    const cookie = req.headers ? ( req.headers.cookie ? req.headers.cookie : "" )  : "";
     const url = localGateway + nbdomain + path;
     console.log("getting url:", url);
     let res1 = await axios.get(url, {
