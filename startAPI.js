@@ -49,9 +49,17 @@ async function checkNBdomain(domain) {
     });
   });
 }
-app.get("/site/add/", async (req, res) => {
+function isLocalCall(host){
+  return host.indexOf("localhost") != -1 || host.indexOf("127.0.0.1") != -1 || host.indexOf(defaultConfig.node_info.domain)!=-1
+}
+app.get("/site/add/", async (req, res,next) => {
   //console.log(req);
-  res.end("ok");
+  const host = req.get("host");
+  if(isLocalCall(host)){
+    res.end("ok");
+    return;
+  }
+  next();
 });
 
 app.get("/*", async (req, res, next) => {
