@@ -8,16 +8,17 @@ var appSSL = express();
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const config = require("./core/config.js");
-const { domain } = require("process");
-const { request } = require("express");
+
 const defaultConfig = config[config.env];
 let domainMap = {};
-let localGateway = "http://127.0.0.1:"+defaultConfig.node_port+"/web/"
+let localWebGateway = null;
+let localAPIGateway = null;
 const SSLDir = "./ssl.d/";
 async function proxyRequest(req, res, path, nbdomain) {
   try {
     const cookie = req.headers ? ( req.headers.cookie ? req.headers.cookie : "" )  : "";
-    const url = localGateway + nbdomain + path;
+    //const url = localGateway + nbdomain + path;
+    const url = localWebGateway + nbdomain + path;
     console.log("getting url:", url);
     let res1 = await axios.get(url, {
       method: "GET",
@@ -28,8 +29,9 @@ async function proxyRequest(req, res, path, nbdomain) {
     res.set(res1.headers);
     res1.data.pipe(res);
   } catch (e) {
-    console.log(e);
-    res.end(e.message);
+    //console.log(e);
+    res.status(e.response.status).send(e.response.message);
+    //res.end(e.message);
   }
 }
 async function checkNBdomain(domain) {
@@ -97,12 +99,16 @@ app.listen(defaultConfig.node_port, async function () {
   var proxyPassConfig = defaultConfig.proxy_map;
 
   for (uri in proxyPassConfig) {
+    uri = uri.trim().toLowerCase();
+    console.log("uri",uri);
     let env = defaultConfig;
     let service_folder = proxyPassConfig[uri];
     const service = require("./modules/" + service_folder + "/index.js");
     const port = await service(env);
     const localAddr = "http://localhost:" + port;
     const pa = "^" + uri;
+    if(uri==="/web/") localWebGateway = localAddr+"/";
+    if(uri==="/api/") localAPIGateway = localAddr+"/";
     app.use(
       uri,
       createProxyMiddleware({
@@ -120,6 +126,7 @@ app.listen(defaultConfig.node_port, async function () {
       })
     ); */
   }
+  console.log(localWebGateway,localAPIGateway)
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());

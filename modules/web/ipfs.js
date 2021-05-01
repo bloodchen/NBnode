@@ -28,7 +28,11 @@ class ipfs{
     if(path!="/"){
       url+=path;
       console.log("redirecting to:",url)
-      res.redirect(url);
+      try{
+          res.redirect(url);
+      }catch(e){
+        console.log("redirect error",e);
+      }
       return;
     }
     url += (obj.home?'/'+obj.home:'')
