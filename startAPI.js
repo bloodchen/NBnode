@@ -49,12 +49,12 @@ async function checkNBdomain(domain) {
     });
   });
 }
-appSSL.get("/site/add/", async (req, res) => {
-  console.log(req);
+app.get("/site/add/", async (req, res) => {
+  //console.log(req);
   res.end("ok");
 });
 
-appSSL.get("/*", async (req, res, next) => {
+app.get("/*", async (req, res, next) => {
   const host = req.get("host");
   console.log(host);
   if (host.indexOf("localhost") != -1 || host.indexOf("127.0.0.1") != -1 || host.indexOf(defaultConfig.node_info.domain)!=-1) {
@@ -103,14 +103,14 @@ app.listen(defaultConfig.node_port, async function () {
         pathRewrite: { [pa]: "" },
       })
     );
-    appSSL.use(
+    /*appSSL.use(
       uri,
       createProxyMiddleware({
         target: localAddr,
         changeOrigin: true,
         pathRewrite: { [pa]: "" },
       })
-    );
+    ); */
   }
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: false }));
@@ -120,6 +120,8 @@ app.listen(defaultConfig.node_port, async function () {
 //Start HTTPS server
 if(defaultConfig.node_info.domain){
   (async()=>{
+    const localAPI = "http://localhost:"+defaultConfig.node_port;
+    appSSL.use(createProxyMiddleware("**",{target: localAPI,}));
     let domainError={};
     var greenlock = require('@root/greenlock').create({
       packageRoot: __dirname,
