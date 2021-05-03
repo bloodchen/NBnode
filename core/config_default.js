@@ -3,11 +3,13 @@ var isBrowser = isBrowser || new Function("try {return this===window;}catch(e){ 
 var config = {
     "development": {
         "node_info":{
-            owner:"nbdomain.b", //nbdomain of the owner. Payment (if any) will goto this address.
-            domain:null, //domain name of the node, for SSL certificate. Replace with real domain
-            email:"" //contact email of the owner
+            payment:"14ganPKEiFHPZYmQ88MUTqwrRd7JYQsv7L", //nbdomain of the owner. Payment (if any) will goto this address.
+            domain:null, //domain name of the node. Replace with real domain
+            email:"",//contact email of the owner
+            prices:{
+                domainHost:10000 //host user's triditional domain and link to a nbdomain
+            }
         },
-        SSL:[], //SSL domains that this node will host.
         "exit_count":0, //exit the crawl process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
         "node_port": 9000, //local port of the http service
         "proxy_map" : {
