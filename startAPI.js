@@ -10,6 +10,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const config = require("./core/config.js");
 
 const defaultConfig = config[config.env];
+let greenlock = null;
 let domainMap = {};
 let localWebGateway = null;
 let localAPIGateway = null;
@@ -48,6 +49,7 @@ async function getNBLink(domain) {
           if (nblink[0] === "nblink") {
             console.log("found nblink:", nblink[1]);
             resolve(nblink[1]);
+            return;
           }
         }
       } catch (e) {}
@@ -77,7 +79,7 @@ app.get("/nblink/add/", async (req, res, next) => {
   };
   res.json(ret);
   console.log("nbLink:",nbLink);
-  if(ret.code==0){ //add ssl
+  if(ret.code==0 && greenlock){ //add ssl
     const res = await greenlock.sites.add({
       subject: domain,
       altnames: [domain],
@@ -180,7 +182,7 @@ if (defaultConfig.node_info.domain) {
     const localAPI = "http://localhost:" + defaultConfig.node_port;
     appSSL.use(createProxyMiddleware("**", { target: localAPI }));
     let domainError = {};
-    var greenlock = require("@root/greenlock").create({
+    greenlock = require("@root/greenlock").create({
       packageRoot: __dirname,
       configDir: SSLDir,
       maintainerEmail: defaultConfig.node_info.email,
