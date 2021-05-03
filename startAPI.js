@@ -63,7 +63,7 @@ function isAPICall(host) {
     host.indexOf(defaultConfig.node_info.domain) != -1
   );
 }
-app.get("/site/add/", async (req, res, next) => {
+app.get("/nblink/add/", async (req, res, next) => {
   if (!isAPICall(req.get("host"))) {
     next();
     return;
