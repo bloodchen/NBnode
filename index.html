@@ -159,7 +159,7 @@
 			<button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 mx-2 rounded"
 				onclick="applyDomain()">Apply
 			</button>
-			<div class="m-3 text-sm">Hosting price per NBlink domain: {{nodeInfo.prices.domainHost}} Sat</div>
+			<div class="m-3 text-sm">Hosting price per NBlink domain: {{priceDomainHost}} Sat</div>
 			<div id="pay" style="width:250px;height:250px"></div>
 			<div id="status" style="color:red"></div>
 		</div>
@@ -179,6 +179,11 @@
 				endpoints:"NULL",
 				payment:null,
 			}
+		},
+		computed:{
+			priceDomainHost(){
+				return this.nodeInfo.prices?this.nodeInfo.prices.domainHost:0
+			},
 		}
 		})
 
