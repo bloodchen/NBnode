@@ -87,6 +87,15 @@ app.get("/nblink/add/", async (req, res, next) => {
   }
   return;
 });
+app.get("/nodeInfo", (req, res, next) => {
+  if (!isAPICall(req.get("host"))) {
+    next();
+    return;
+  }
+  let info = defaultConfig.node_info;
+  info.endpoints = Object.keys(defaultConfig.proxy_map);
+  res.json(info);
+});
 app.get("/", (req, res, next) => {
   if (!isAPICall(req.get("host"))) {
     next();
@@ -161,14 +170,6 @@ app.listen(defaultConfig.node_port, async function () {
         pathRewrite: { [pa]: "" },
       })
     );
-    /*appSSL.use(
-      uri,
-      createProxyMiddleware({
-        target: localAddr,
-        changeOrigin: true,
-        pathRewrite: { [pa]: "" },
-      })
-    ); */
   }
   console.log(localWebGateway, localAPIGateway);
   app.use(cors());
@@ -185,17 +186,17 @@ if (defaultConfig.node_info.domain) {
     greenlock = require("@root/greenlock").create({
       packageRoot: __dirname,
       configDir: SSLDir,
-      maintainerEmail: defaultConfig.node_info.email,
+      maintainerEmail: defaultConfig.node_info.contact,
       notify: function (event, details) {
         if ("error" === event) {
           // `details` is an error object in this case
           console.error("GL Error, subject:", details);
           console.log("DE:", domainError);
           !domainError[details.subject] && (domainError[details.subject] = 0);
-          if (++domainError[details.subject] > 2) {
+          //if (++domainError[details.subject] > 2) {
             console.log("GL remove, subject:", details.subject);
             greenlock.sites.remove({ subject: details.subject });
-          }
+          //}
         }
       },
     });
@@ -203,12 +204,6 @@ if (defaultConfig.node_info.domain) {
       subject: defaultConfig.node_info.domain,
       altnames: [defaultConfig.node_info.domain],
     });
-    /*defaultConfig.SSL.forEach(site=>{
-      greenlock.sites.add({
-        subject: site,
-        altnames: [site],
-      });
-    }) */
     const green = require("greenlock-express").init(() => {
       return {
         greenlock,

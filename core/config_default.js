@@ -5,7 +5,7 @@ var config = {
         "node_info":{
             payment:"14ganPKEiFHPZYmQ88MUTqwrRd7JYQsv7L", //nbdomain of the owner. Payment (if any) will goto this address.
             domain:null, //domain name of the node. Replace with real domain
-            email:"",//contact email of the owner
+            contact:"",//contact email or phone or... of the owner
             prices:{
                 domainHost:10000 //host user's triditional domain and link to a nbdomain
             }
