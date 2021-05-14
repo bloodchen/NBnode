@@ -9,11 +9,15 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const config = require("./core/config.js");
 
+const core = require("./core/startCore.js");
+
 const defaultConfig = config[config.env];
 let greenlock = null;
 let domainMap = {};
 let localWebGateway = null;
 let localAPIGateway = null;
+const verNode = "0.1.1.30";
+
 const SSLDir = "./ssl.d/";
 async function proxyRequest(req, res, path, nbdomain) {
   try {
@@ -44,14 +48,16 @@ async function getNBLink(domain) {
   return new Promise((resolve) => {
     dns.resolve(domain, "TXT", (err, data) => {
       try {
-        if (data[0][0]) {
-          const nblink = data[0][0].split("=");
-          if (nblink[0] === "nblink") {
-            console.log("found nblink:", nblink[1]);
-            resolve(nblink[1]);
-            return;
+        for(let i=0;i<data.length;i++){
+          if (data[i][0]) {
+            const nblink = data[i][0].split("=");
+            if (nblink[0] === "nblink") {
+              console.log("found nblink:", nblink[1]);
+              resolve(nblink[1]);
+              return;
+            }
           }
-        }
+      }
       } catch (e) {}
       console.log(domain, ": No NBlink found");
       resolve(null);
@@ -65,6 +71,8 @@ function isAPICall(host) {
     host.indexOf(defaultConfig.node_info.domain) != -1
   );
 }
+
+
 app.get("/nblink/add/", async (req, res, next) => {
   if (!isAPICall(req.get("host"))) {
     next();
@@ -87,6 +95,7 @@ app.get("/nblink/add/", async (req, res, next) => {
   }
   return;
 });
+
 app.get("/nodeInfo", (req, res, next) => {
   if (!isAPICall(req.get("host"))) {
     next();
@@ -94,6 +103,7 @@ app.get("/nodeInfo", (req, res, next) => {
   }
   let info = defaultConfig.node_info;
   info.endpoints = Object.keys(defaultConfig.proxy_map);
+  info.version = verNode;
   res.json(info);
 });
 app.get("/", (req, res, next) => {
@@ -109,6 +119,10 @@ app.get("/welcome.md", (req, res, next) => {
     return;
   }
   res.sendFile(__dirname + "/welcome.md");
+});
+app.post("/*", async (req, res, next) => {
+  console.log("got post");
+  next();
 });
 
 app.get("/*", async (req, res, next) => {

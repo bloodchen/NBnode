@@ -135,14 +135,17 @@
 		<div id="tab-content2">
 			<div id="infoPanel" align="center" class="flex flex-row">
 				<div class="flex-col flex m-2 font-bold">
+					<div>Version:</div>
 					<div>Domain:</div>
 					<div>Contact:</div>
 					<div>Endpoints:</div>
+					
 				</div>
 				<div class="flex-col flex m-2">
-					<div id="domain">{{nodeInfo.domain}}</div>
-					<div id="contact">{{nodeInfo.contact}}</div>
-					<div id="endpoints">{{nodeInfo.endpoints.join(' ')}}</div>
+					<div>{{nodeInfo.version}}</div>
+					<div>{{nodeInfo.domain}}</div>
+					<div>{{nodeInfo.contact}}</div>
+					<div>{{nodeInfo.endpoints.join(' ')}}</div>
 				</div>
 
 			</div>

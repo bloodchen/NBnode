@@ -18,8 +18,12 @@ You need to have NodeJS to run NBnode.
 >> You don't need to start the web server if you don't want to provide public service.
 0. stop the startAPI.js if you have started it
 ```
-# Allow non-root node to use ports 80 (HTTP) and 443 (HTTPS)
+# Allow non-root node to use ports 80 (HTTP) and 443 (HTTPS) Linux
 sudo setcap 'cap_net_bind_service=+ep' $(which node)
+```
+```
+# Allow non-root node to use ports 80 (HTTP) and 443 (HTTPS) Freebsd
+sudo sysctl net.inet.ip.portrange.reservedhigh=0
 ```
 1. goto your domain's DNS manager to add a (A or C)record to point the domain (or subdomain) to this NBnode's IP address
 2. edit .\core\config.js, especially "node_info"->"domain"
@@ -29,4 +33,4 @@ note:
 * you can change core/config.js to change the port number of the API server.
 * a https web server comes with NBnode, please stop apache or ngnix server.
 * you can use tools like pm2 to make the service running in background. In this case, you can set exit_count:60 in config.js to make startCore.js restart every 60 minutes, to make it run more smoothly.
-* you can edit welcome.md in root folder to show different welcome message to the users.
+* you can create welcome.md in root folder to show welcome messages at https://yourdomain.

@@ -41,7 +41,7 @@ const auth = async (req,res) => {
     return false;
 }
 
-app.get(`/`, function (req, res, next) {
+app.get('/', function (req, res, next) {
     if (!auth(req, res)) {
         return;
     }

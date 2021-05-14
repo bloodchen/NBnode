@@ -17,6 +17,7 @@ const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 
 
 async function processTX(tx, type) {
+	console.log("processTX");
 	if (type == "c") {
 		let newTx = {
 			txHash: tx.tx.h,
@@ -220,3 +221,7 @@ cron.schedule('*/1 * * * *', () => {
 		}
 	});
 });
+
+module.exports = {
+	processTX
+  };
