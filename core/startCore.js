@@ -197,7 +197,7 @@ cron.schedule('*/1 * * * *', async () => {
 		//console.log(nbQuery);
 		lastHeight = res.height;
 		await bitBus.run(TOKEN, nbQuery, async tx => {
-			console.log("got new confirmed tx", tx);
+			//console.log("got new confirmed tx", tx);
 			await processTX(tx, 'c');
 		}, null);
 		
