@@ -97,7 +97,7 @@ async function processTX(tx, type) {
 		// });
 	}
 	if (type === "u" || type === "r") {
-		if(tx_u.findIndex(tx1=>tx1.hash===tx.tx.h)){
+		if(tx_u.findIndex(tx1=>tx1.hash===tx.tx.h)!=-1){
 			console.log("already handled utx:",tx.tx.h);
 			return;
 		}
