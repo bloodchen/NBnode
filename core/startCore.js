@@ -7,6 +7,9 @@ const cron = require('node-cron');
 const plan = require('planariette');
 const bitBus = require('run-bitbus');
 const fs = require('fs');
+const ipc = require('node-ipc');
+const { isContext } = require('vm');
+const TXO = require('./txo.js');
 //const AsyncLock = require('async-lock');
 //var lock = new AsyncLock({maxPending: 5000});
 
@@ -15,9 +18,52 @@ const defaultConfig = config[config.env];
 const TOKEN = "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxQzc5M0RkVjI0Q3NORTJFUDZNbVZmckhqVlNGVmc2dU4iLCJpc3N1ZXIiOiJnZW5lcmljLWJpdGF1dGgifQ.SUJlYUc2TGNGdFlZaGk3amxwa3ZoRGZJUEpFcGhObWhpdVNqNXVBbkxORTdLMWRkaGNESC81SWJmM2J1N0V5SzFuakpKTWFPNXBTcVJlb0ZHRm5uSi9VPQ";
 const DB_SEQ_LOCK = 'DB_SEQUENCE_LOCK';
 
-
+async function sendRawTX(rawtx){
+	let ret = {
+		code:1,message:"error"
+	}
+	if(!rawtx)return ret;
+	try{
+		console.log("SendRawTx");
+		const tx = TXO.fromRaw(rawtx);
+		const res = await BSVName.BSVWriter.sendTxToMinder(rawtx);
+		console.log(res);
+		if(res.txid)
+			processTX(tx,'r');
+		ret.code = res.txid==="" ? 1:0;
+		ret.txid = res.txid;
+		ret.message = "success";
+	}catch(e){
+		console.log(e);
+		ret.message = e.message;
+	}
+	return ret;
+}
+function startIPCSever(){
+	ipc.config.silent = true;
+	ipc.config.id = 'core';
+	ipc.config.retry= 1500;
+	ipc.config.maxConnections=1;
+	ipc.serve(
+		function(){
+			ipc.server.on(
+				'fromapi',
+				async function(data,socket){
+					const obj = JSON.parse(data);
+					ipc.log('got obj : ', obj);
+					let ret = await sendRawTX(obj.rawtx);
+					ret.id = obj.id;
+					ipc.server.emit(
+						socket,
+						'toapi',
+						JSON.stringify(ret)
+					);
+				})
+		}
+	)
+	ipc.server.start();
+}
 async function processTX(tx, type) {
-	console.log("processTX");
 	if (type == "c") {
 		let newTx = {
 			txHash: tx.tx.h,
@@ -51,6 +97,10 @@ async function processTX(tx, type) {
 		// });
 	}
 	if (type === "u" || type === "r") {
+		if(tx_u.findIndex(tx1=>tx1.hash===tx.tx.h)){
+			console.log("already handled utx:",tx.tx.h);
+			return;
+		}
 		let newTx = {
 			txHash: tx.tx.h,
 			publicKey: tx.in[0].h1,
@@ -108,6 +158,10 @@ const fetcher = new BSVName.NidFetcher();
 let tx_c = [];
 let tx_u = [];
 
+/*const rawtx = "0100000002f6609920cbc91b3f51efabf25cd10f3b3493973e394fc49aad637f92ea740460020000006b483045022100eed060c2095730c70d39146a6040a3443c77c8f591ee7e47aa9950f4271a229b02203b9d3f746b2b17a2866e423dc1a369cab6a75a5ca9b0bc3d8164c6a8e92fb6424121030fb59a04df8fdedf258421f7bf3b47136ffc177c36b43c996bb14488598f9f1fffffffff7a7afaf8743b0a203e936c6bd5b231fa693086c2d2445d205431701847ce6945000000006a47304402206d76a0b655aca5c359100be38b2921a26d570dc51a209a18d6b3fa4e8de17fa902205f283b56446af158cb7efd13f21a3841f855331054e68bcfbaf4af22cb34855d4121030fb59a04df8fdedf258421f7bf3b47136ffc177c36b43c996bb14488598f9f1fffffffff04000000000000000041006a22313543777737697a456479723851736b4a6d717743354554715752455a436a777a34086a6f65626964656e087265676973746572046e6f6e65046e6f6e650000000000000000fd0001006a2231346b7871597633656d48477766386d36596753594c516b4743766e395172677239423033306662353961303464663866646564663235383432316637626633623437313336666663313737633336623433633939366262313434383835393866396631664c9633303435303232313030643163663738323530373364356537326337656534643963653330366364373134613831643932353862343362333165303532316262303138643365366335323032323032323932663935353065626636393166383733616633333434366137366136643234616365633737343133626533316238303861626563333738393939363364202020202020202080969800000000001976a9142e22ef3b8094cd911a8905e83f0fc4de613cd64788ace9a90200000000001976a9149cd812cf5623087935a0a6ee3c65e7e22c5eab3188ac00000000";
+	
+const tx = TXO.fromRaw(rawtx);
+console.dir(JSON.stringify(tx,null,4)); */
 
 let allProtocols = Util.getAllRegProtocols();
 loadHeight(); 
@@ -121,6 +175,7 @@ let nbQuery = {
 		"sort": { "blk.i": 1, "i": 1 }
 	}
 };
+startIPCSever();
 plan.start(TOKEN, nbQuery, processTX, () => {
 	console.log("AllFinish");
 	bitBus.getStatus().then(res => {
@@ -221,7 +276,3 @@ cron.schedule('*/1 * * * *', () => {
 		}
 	});
 });
-
-module.exports = {
-	processTX
-  };

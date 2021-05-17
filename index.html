@@ -205,11 +205,23 @@
 		})
 
 		opay.init({ containerID: "pay" });
+		function callApplyDomain(domain){
+			const applyURL = "./nblink/add/?domain=" + domain;
+				fetch(applyURL).then(res => res.json()).then(json => {
+					if (json.code != 0) {
+						alert(json.message)
+					}
+				});
+		}
 		function applyDomain() {
 			const domain = document.querySelector("#elDomain").value.trim();
 			if (domain == "") return;
+			if(vm.nodeInfo.prices.domainHost==0){
+				callApplyDomain(domain);
+				return;
+			}
 			let reqBody = {
-				to: [{ address: vm.nodeInfo.payment, value: 1000 }],
+				to: [{ address: vm.nodeInfo.payment, value: vm.nodeInfo.prices.domainHost }],
 				expire: Date.now() + 120 * 1000,
 				broadcast: false
 			};
@@ -217,15 +229,8 @@
 				let result = e;
 				console.log(result);
 				document.querySelector("#status").innerText = JSON.stringify(result);
-				const applyURL = "./nblink/add/?domain=" + domain;
-				fetch(applyURL).then(res => res.json()).then(json => {
-					if (json.code != 0) {
-						alert(json.message)
-					}
-				})
+				callApplyDomain(domain);
 			});
-
-
 		}
 	</script>
 </body>

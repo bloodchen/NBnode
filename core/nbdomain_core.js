@@ -83,10 +83,10 @@ class BSVWriter {
     });
   }
 
-  async sendTxToMinder(exportedTx) {
+  static async sendTxToMinder(exportedTx) {
     const miner = new Minercraft({
-      // url: "https://merchantapi.matterpool.io",
-      url: "https://www.ddpurse.com/openapi",
+       url: "https://merchantapi.matterpool.io",
+      //url: "https://www.ddpurse.com/openapi",
       headers: {
         "Content-Type": "application/json",
         token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
@@ -1733,5 +1733,6 @@ module.exports = {
   NidFetcher: NidFetcher,
   NidLoader: NidLoader,
   NIDManager: NIDManager,
-  CrossDBReader: CrossDBReader
+  CrossDBReader: CrossDBReader,
+  BSVWriter:BSVWriter,
 }

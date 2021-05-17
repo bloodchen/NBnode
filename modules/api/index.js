@@ -7,22 +7,24 @@ const NbCore = require('../../core/nbdomain_core.js');
 const fs = require('fs');
 const defaultConfig = config[config.env];
 var path = require('path');
+const ipc = require('node-ipc');
 
 var express = require('express');
 var bodyParser = require("body-parser");
 var cors = require('cors');
+const { stringify } = require('querystring');
 var app = express();
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-const auth = async (req,res) => {
+const auth = async (req, res) => {
     try {
         if (!fs.existsSync(defaultConfig.auth_file)) {
-          return true;
+            return true;
         }
-    } catch(err) {
+    } catch (err) {
         console.error(err)
         return true;
     }
@@ -36,9 +38,44 @@ const auth = async (req,res) => {
         return true;
     } catch (error) {
         console.log(error)
-        res.status(401).send({error:'Please authenticate!'})
+        res.status(401).send({ error: 'Please authenticate!' })
     }
     return false;
+}
+let eventMap = {};
+async function getResultFromCore(eventID){
+    return new Promise(resolve=>{
+        const timer = setInterval(()=>{
+            if(eventMap[eventID]){
+                clearInterval(timer);
+                resolve(eventMap[eventID]);
+            }
+        },100);
+    });
+}
+function connectToCore() {
+    let result = "";
+    ipc.config.id = 'apiService';
+    ipc.config.retry = 1500;
+    ipc.connectTo(
+        'core',
+        function () {
+            ipc.of.core.on(
+                'connect',
+                async function (data) {
+                    console.log("connected to core");
+                }
+            );
+            ipc.of.core.on(
+                'toapi',
+                function (data) {
+                    const objEvent = JSON.parse(data);
+                    eventMap[objEvent.id] = objEvent;
+                    console.log("get return:",objEvent);
+                }
+            );
+        }
+    );
 }
 
 app.get('/', function (req, res, next) {
@@ -51,7 +88,7 @@ app.get('/', function (req, res, next) {
     let f = (q.full == 'true');
 
     if (nid == null) {
-        let resp = { 
+        let resp = {
             code: NbCore.ERROR_NID_NOT_VALID,
             message: `NID [${nid}] is not valid!`
         };
@@ -59,22 +96,22 @@ app.get('/', function (req, res, next) {
         return;
     }
 
-    
+
 
     try {
         const nidLoader = new NbCore.NidLoader(nid, null);
 
         if (predict == "0") {
-            nidLoader.readLocalNid(nid, function(data) {
+            nidLoader.readLocalNid(nid, function (data) {
                 res.json(data);
             })
         } else {
             if (nid.indexOf("@") !== -1) {
-                nidLoader.readUserProperty(nid, function(data) {
+                nidLoader.readUserProperty(nid, function (data) {
                     res.json(data);
                 })
             } else {
-                nidLoader.readLocalPredictNid(nid, function(data) {
+                nidLoader.readLocalPredictNid(nid, function (data) {
                     resp = data;
                     if (!f && resp.obj && resp.obj.keys) {
                         for (let k in resp.obj.keys) {
@@ -89,9 +126,9 @@ app.get('/', function (req, res, next) {
                 })
             }
         }
-        
+
     } catch (err) {
-        let resp = { 
+        let resp = {
             code: 99,
             message: err.message
         };
@@ -99,8 +136,23 @@ app.get('/', function (req, res, next) {
         res.json(resp);
     }
 });
-
-app.get(`/tld`, function (req, res, next) {
+app.post('/sendTx',async function(req,res){
+    let ret = {
+        code:1,
+        message:"error"
+    }
+    const eventID = Date.now().toString();
+    const obj = req.body;
+    obj.id = eventID;
+    const r1 = ipc.of.core.emit(
+        'fromapi',
+        JSON.stringify(obj)
+    );
+    ret = await getResultFromCore(eventID);
+    console.log("return from core:",ret);
+    res.json(ret);
+});
+app.get(`/tld`, function (req, res) {
     if (!auth(req, res)) {
         return;
     }
@@ -141,7 +193,7 @@ app.get(`/find_domain`, function (req, res, next) {
             obj: result
         })
     } catch (err) {
-        let resp = { 
+        let resp = {
             code: 99,
             message: err.message
         };
@@ -169,7 +221,7 @@ app.get(`/query`, function (req, res, next) {
             domains: result
         })
     } catch (err) {
-        let resp = { 
+        let resp = {
             code: 99,
             message: err.message
         };
@@ -181,10 +233,12 @@ app.get(`/query`, function (req, res, next) {
 
 
 module.exports = function (env) {
-    return new Promise( (resolve)=>{
-    const server = app.listen(0, function () {
-        const port = server.address().port;
-        console.log(`API server started on port ${port}...`)
-        resolve(port);
+    return new Promise((resolve) => {
+        const server = app.listen(0, function () {
+            const port = server.address().port;
+            console.log(`API server started on port ${port}...`)
+            connectToCore();
+            resolve(port);
+        })
     })
-})}
+}

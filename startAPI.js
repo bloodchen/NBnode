@@ -9,7 +9,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const config = require("./core/config.js");
 
-const core = require("./core/startCore.js");
+//const core = require("./core/startCore.js");
 
 const defaultConfig = config[config.env];
 let greenlock = null;
@@ -43,12 +43,32 @@ async function proxyRequest(req, res, path, nbdomain) {
     //res.end(e.message);
   }
 }
+function connectToCore() {
+  ipc.config.id = 'apiService';
+  ipc.config.retry = 1500;
+  ipc.connectTo(
+    'core',
+    function () {
+      ipc.of.core.on(
+        'connect',
+        function (data) {
+          console.log("connected to core");
+          //if data was a string, it would have the color set to the debug style applied to it
+          ipc.of.core.emit(
+            'message',
+            'hello'
+          );
+        }
+      );
+    }
+  );
+}
 async function getNBLink(domain) {
   console.log("getting TXT of:", domain);
   return new Promise((resolve) => {
     dns.resolve(domain, "TXT", (err, data) => {
       try {
-        for(let i=0;i<data.length;i++){
+        for (let i = 0; i < data.length; i++) {
           if (data[i][0]) {
             const nblink = data[i][0].split("=");
             if (nblink[0] === "nblink") {
@@ -57,8 +77,8 @@ async function getNBLink(domain) {
               return;
             }
           }
-      }
-      } catch (e) {}
+        }
+      } catch (e) { }
       console.log(domain, ": No NBlink found");
       resolve(null);
     });
@@ -79,15 +99,15 @@ app.get("/nblink/add/", async (req, res, next) => {
     return;
   }
   const domain = req.query["domain"];
-  console.log("Adding domain:",domain);
+  console.log("Adding domain:", domain);
   const nbLink = await getNBLink(domain);
   const ret = {
     code: nbLink ? 0 : 1,
     message: nbLink ? nbLink : domain + ":No NBlink found in DNS record",
   };
   res.json(ret);
-  console.log("nbLink:",nbLink);
-  if(ret.code==0 && greenlock){ //add ssl
+  console.log("nbLink:", nbLink);
+  if (ret.code == 0 && greenlock) { //add ssl
     const res = await greenlock.sites.add({
       subject: domain,
       altnames: [domain],
@@ -160,6 +180,8 @@ setInterval(() => {
   domainMap = []; //clear domainMap cache
 }, 60 * 1000);
 
+
+
 app.listen(defaultConfig.node_port, async function () {
   console.log(`NBnode server started on port ${defaultConfig.node_port}...`);
 
@@ -201,15 +223,17 @@ if (defaultConfig.node_info.domain) {
       packageRoot: __dirname,
       configDir: SSLDir,
       maintainerEmail: defaultConfig.node_info.contact,
-      notify: function (event, details) {
+      notify: async function (event, details) {
         if ("error" === event) {
           // `details` is an error object in this case
           console.error("GL Error, subject:", details);
           console.log("DE:", domainError);
           !domainError[details.subject] && (domainError[details.subject] = 0);
           //if (++domainError[details.subject] > 2) {
-            console.log("GL remove, subject:", details.subject);
-            greenlock.sites.remove({ subject: details.subject });
+          console.log("GL remove, subject:", details.subject);
+          // const res = await greenlock.sites.get({ subject: details.subject });
+          // console.log("get result:",res);
+          greenlock.remove({ subject: details.subject });
           //}
         }
       },
@@ -218,6 +242,7 @@ if (defaultConfig.node_info.domain) {
       subject: defaultConfig.node_info.domain,
       altnames: [defaultConfig.node_info.domain],
     });
+    console.log("sites.add", res);
     const green = require("greenlock-express").init(() => {
       return {
         greenlock,
