@@ -16,7 +16,7 @@ let greenlock = null;
 let domainMap = {};
 let localWebGateway = null;
 let localAPIGateway = null;
-const verNode = "0.1.2";
+const verNode = require('./package.json').version;
 
 const SSLDir = "./ssl.d/";
 async function proxyRequest(req, res, path, nbdomain) {
