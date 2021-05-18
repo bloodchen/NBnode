@@ -335,6 +335,7 @@ class NIDManager {
       token: "111", //api token required by resolver
       debug: true, //enable debug or not. 
       tld_config: defaultConfig.tld_config,
+      sendByNode: false,
       enable_write: true  //enable functions that can update and write value to NBdomain
   });
   }
