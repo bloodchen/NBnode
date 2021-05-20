@@ -10,6 +10,10 @@ var config = {
                 domainHost:10000 //host user's triditional domain and link to a nbdomain
             }
         },
+        "remote_admin":{
+            enable:false,
+            passcode:"nbnodeadmin",
+        },
         "exit_count":0, //exit the crawl process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
         "node_port": 9000, //local port of the http service
         "proxy_map" : {

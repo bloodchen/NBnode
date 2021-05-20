@@ -144,6 +144,7 @@ app.post('/sendTx',async function(req,res){
     const eventID = Date.now().toString();
     const obj = req.body;
     obj.id = eventID;
+    obj.cmd = "sendtx";
     const r1 = ipc.of.core.emit(
         'fromapi',
         JSON.stringify(obj)
@@ -151,6 +152,26 @@ app.post('/sendTx',async function(req,res){
     ret = await getResultFromCore(eventID);
     console.log("return from core:",ret);
     res.json(ret);
+});
+app.get('/radmin',function(req,res){
+    const eventID = Date.now().toString();
+    const obj = req.body;
+    obj.id = eventID;
+    obj.cmd = "radmin";
+    obj.para = req.query['para'];
+    if(!defaultConfig.remote_admin.enable){
+        console.error("remote_admin: not enabled");
+        return;
+    }
+    if(req.query['passcode']!==defaultConfig.remote_admin.passcode){
+        console.error("remote_admin: wrong passcode");
+        return;
+    }
+    const r1 = ipc.of.core.emit(
+        'fromapi',
+        JSON.stringify(obj)
+    );
+    res.end("ok");
 });
 app.get(`/tld`, function (req, res) {
     if (!auth(req, res)) {

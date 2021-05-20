@@ -39,6 +39,11 @@ async function sendRawTX(rawtx){
 	}
 	return ret;
 }
+function rebuildDB(){ //rebuild whole database
+	fs.writeFileSync(__dirname+"/.rebuildDB","none");
+	console.log("remote_admin: rebuildDB, Exit...");
+	process.exit(-1);
+}
 function startIPCSever(){
 	ipc.config.silent = true;
 	ipc.config.id = 'core';
@@ -51,13 +56,20 @@ function startIPCSever(){
 				async function(data,socket){
 					const obj = JSON.parse(data);
 					ipc.log('got obj : ', obj);
-					let ret = await sendRawTX(obj.rawtx);
-					ret.id = obj.id;
-					ipc.server.emit(
-						socket,
-						'toapi',
-						JSON.stringify(ret)
-					);
+					if(obj.cmd==="sendtx"){
+						let ret = await sendRawTX(obj.rawtx);
+						ret.id = obj.id;
+						ipc.server.emit(
+							socket,
+							'toapi',
+							JSON.stringify(ret)
+						);
+					}
+					if(obj.cmd==="radmin"){
+						if(obj.para==='rebuilddb'){
+							rebuildDB();
+						}
+					}
 				})
 		}
 	)
@@ -133,6 +145,13 @@ async function processTX(tx, type) {
 }
 
 function loadHeight() {
+	try{
+		fs.accessSync(__dirname+"/.rebuildDB",fs.constants.F_OK);
+		fs.unlinkSync(__dirname+"/.rebuildDB");
+		return;
+	}catch(e){
+		console.log(e.message);
+	}
 	try {
 		let protocols = Util.getAllRegProtocols();
 		protocols.forEach(function (protocol) {
