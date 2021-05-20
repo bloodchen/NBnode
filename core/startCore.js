@@ -281,6 +281,7 @@ cron.schedule('*/3 * * * *', () => {
 //Update NID 
 let fetchingTx = {};
 cron.schedule('*/1 * * * *', () => {
+	if(!bFinish)return;
 	let protocols = Util.getAllRegProtocols();
 	protocols.forEach(function (protocol) {
 		if (!protocol in fetchingTx) {
