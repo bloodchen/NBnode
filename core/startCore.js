@@ -40,6 +40,11 @@ async function sendRawTX(rawtx){
 	return ret;
 }
 function rebuildDB(){ //rebuild whole database
+	let protocols = Util.getAllRegProtocols();
+	protocols.forEach(function (protocol) {
+			let sql = new sqlDB.SQLDB(protocol);
+			sql.emptyAllNID();
+	});
 	fs.writeFileSync(__dirname+"/.rebuildDB","none");
 	console.log("remote_admin: rebuildDB, Exit...");
 	process.exit(-1);
@@ -150,7 +155,7 @@ function loadHeight() {
 		fs.unlinkSync(__dirname+"/.rebuildDB");
 		return;
 	}catch(e){
-		console.log(e.message);
+		//console.log(e.message);
 	}
 	try {
 		let protocols = Util.getAllRegProtocols();

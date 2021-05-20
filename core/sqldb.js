@@ -324,7 +324,16 @@ class SQLDB {
             db.close();
         }
     }
-
+    emptyAllNID(){
+        let db = new Database(this.path + DB_FILE_NAME, { verbose: null });
+        let sql = `DELETE FROM "nidobj";`
+        let sql2 = `DELETE FROM "config"`;
+        // empty table
+        const rm = db.prepare(sql).run();
+        const rm2 = db.prepare(sql2).run();
+        // close the database connection
+        db.close();
+    }
     emptyDB() {
         let db = new Database(this.path + DB_FILE_NAME, { verbose: null });
         let sql = `DELETE FROM "nidobj";`
