@@ -203,9 +203,14 @@ class SQLDB {
             let db = new Database(this.path + DB_FILE_NAME, { verbose: null });
             for (let i in rtxArray) {
                 let rtx = rtxArray[i];
+
                 if (this.checkLog("transac", rtx.hash)) {
                     continue;
                 }
+                //this.deleteUnconfirmedLog(rtx.hash);
+                let sql_delete = `DELETE FROM "unconfirmed_transac" where "hash" = ?;`
+                const rm = db.prepare(sql_delete).run(rtx.hash);
+
                 let sql = `INSERT INTO "transac" 
                     ("blkTs", "hash", "publicKey", "blockId", "command", "inputAddress", "output", "in", "out") 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
@@ -328,9 +333,11 @@ class SQLDB {
         let db = new Database(this.path + DB_FILE_NAME, { verbose: null });
         let sql = `DELETE FROM "nidobj";`
         let sql2 = `DELETE FROM "config"`;
+        let sql3 = `DELETE FROM "unconfirmed_transac"`;
         // empty table
         const rm = db.prepare(sql).run();
         const rm2 = db.prepare(sql2).run();
+        const rm3 = db.prepare(sql3).run();
         // close the database connection
         db.close();
     }

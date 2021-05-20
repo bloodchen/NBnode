@@ -281,7 +281,7 @@ cron.schedule('*/3 * * * *', () => {
 //Update NID 
 let fetchingTx = {};
 cron.schedule('*/1 * * * *', () => {
-	if(!bFinish)return;
+	//if(!bFinish)return;
 	let protocols = Util.getAllRegProtocols();
 	protocols.forEach(function (protocol) {
 		if (!protocol in fetchingTx) {
@@ -292,11 +292,6 @@ cron.schedule('*/1 * * * *', () => {
 			const nidSyncer = new BSVName.NidSynchronizer(null, protocol);
 			nidSyncer.updateNidFiles(function (data) {
 				fetchingTx[protocol] = false;
-				// if (data.code == 0) {
-				//     log(`<<<Complete fetching NidObj: Successfully updated ${Object.keys(data.obj).length} nid object!`);
-				// } else {
-				//     log(`<<<Complete fetching NidObj: ${data.message}`);
-				// }
 			});
 		}
 	});
