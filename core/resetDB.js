@@ -14,7 +14,7 @@ rl.question('Are your sure you want to reset Databases？(yes/no)', (answer) => 
   if(answer!='yes') 
   	process.exit(1);
   else {
-	fs.unlinkSync(__dirname+"/state.json");
+	// fs.unlinkSync(__dirname+"/state.json");
 	let protocols = Util.getAllRegProtocols();
 	protocols.forEach( function(protocol) {
 	    if (!fs.existsSync(`${BSV_DB_PATH}/${protocol}/`)){

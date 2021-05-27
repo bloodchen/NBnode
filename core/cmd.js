@@ -5,8 +5,9 @@ const CMD = {
     "KEY": "key",
     "USER": "user",
     "ADMIN": "admin",
-    "TRANSFER": "sell",
-    "ACCEPT": "buy",
+    "SELL": "sell",
+    "BUY": "buy",
+    "TRANSFER": "transfer",
     "NOP": "nop"
 }
 

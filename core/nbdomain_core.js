@@ -22,7 +22,6 @@ const defaultConfig = config[config.env];
  * Constants for configurations.
  */
 const ERROR_INVALID_OWNER = 10;
-const ERROR_INVALID_ACCEPT = 11;
 const ERROR_INVALID_REGISTER = 12;
 const ERROR_PERMISSION_DENIED = 13;
 const ERROR_NID_NOT_VALID = 14;
@@ -84,10 +83,10 @@ class BSVWriter {
     });
   }
 
-  async sendTxToMinder(exportedTx) {
+  static async sendTxToMinder(exportedTx) {
     const miner = new Minercraft({
-      // url: "https://merchantapi.matterpool.io",
-      url: "https://www.ddpurse.com/openapi",
+       url: "https://merchantapi.matterpool.io",
+      //url: "https://www.ddpurse.com/openapi",
       headers: {
         "Content-Type": "application/json",
         token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
@@ -192,14 +191,14 @@ class NidFetcher {
             continue;
           }
         }
-        if (rtx.command === CMD.TRANSFER) {
-          rtx.output = new TransferOutput(tx.out);
+        if (rtx.command === CMD.SELL) {
+          rtx.output = new SellOutput(tx.out);
         }
         if (rtx.command === CMD.NOP) {
           rtx.output = new NopOutput(tx.out);
         }
-        if (rtx.command === CMD.ACCEPT) {
-          rtx.output = new AcceptTransferOutput(tx.out);
+        if (rtx.command === CMD.BUY) {
+          rtx.output = new BuyOutput(tx.out);
           let addr = BSVUtil.getWalletAddressFromPublicKey(rtx.publicKey);
           let authorsities = Util.getAdmins(rtx.output.protocol, rtx.blockId);
           if (!(authorsities.includes(addr))) {
@@ -212,6 +211,9 @@ class NidFetcher {
         }
         if (rtx.command === CMD.KEY || rtx.command === CMD.USER) {
           rtx.output = new MetaDataOutput(tx.out).resolveBitFsWhenNeeded();
+        }
+        if (rtx.command === CMD.TRANSFER) {
+          rtx.output = new TransferOutput(tx.out);
         }
       } catch (err) {
         // throw err;
@@ -250,7 +252,7 @@ class NidFetcher {
               }
               let rtxVerified = BitID.verifyIDFromBitbus(rtx);
               if (!rtxVerified) {
-                console.log(`Failed to verify transaction signature.: ${rtx.hash}`);
+                console.error(`Failed to verify transaction signature.: ${rtx.hash}`);
                 continue;
                 // throw new SignatureValationError("Failed to verify transaction signature.");
               } else {
@@ -327,12 +329,13 @@ class NIDManager {
   async initSync() {
     await NBLib.init({
       // API: "https://manage.nbdomain.com/node/", //resolver endpoint 
-      API: "http://localhost:9000/api/", //resolver endpoint 
-      adminAPI: "http://localhost:9000/admin/",
+      API: "http://localhost:" + defaultConfig.node_port + "/api/",
+      adminAPI: "http://localhost:" + defaultConfig.node_port + "/admin/",
       minerAPI: "https://merchantapi.taal.com", //endpoint of miner API
       token: "111", //api token required by resolver
       debug: true, //enable debug or not. 
       tld_config: defaultConfig.tld_config,
+      sendByNode: false,
       enable_write: true  //enable functions that can update and write value to NBdomain
   });
   }
@@ -448,7 +451,7 @@ class NIDManager {
     /*var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
       nid: this.nid,
       protocol: this.protocol,
-      command: CMD.ACCEPT,
+      command: CMD.BUY,
       privateKey: this.getRegKey(),
       ownerPublicKey: ownerPublicKey,
       agent: null,
@@ -586,7 +589,7 @@ class NIDManager {
 
       // RTX owner key is different from current owner.
       let rxOwner = rx.publicKey;
-      if (rx.command == CMD.REGISTER || rx.command == CMD.ACCEPT) {
+      if (rx.command == CMD.REGISTER || rx.command == CMD.BUY) {
         // Only authorities can register a domain but not users.
         rxOwner = rx.output.owner_key;
       }
@@ -600,7 +603,7 @@ class NIDManager {
         }
 
         // Accept NID transfer.
-        if ((rx.command == CMD.ACCEPT) && nidObj.status == STATUS_TRANSFERING) {
+        if ((rx.command == CMD.BUY) && nidObj.status == STATUS_TRANSFERING) {
           /**
            *  Validation for domain expiration at accept time.
            */
@@ -661,7 +664,7 @@ class NIDManager {
       }
 
       // Accept NID transfer.
-      if ((rx.command == CMD.ACCEPT) && nidObj.status == STATUS_TRANSFERING) {
+      if ((rx.command == CMD.BUY) && nidObj.status == STATUS_TRANSFERING) {
         /**
          *  Validation for domain expiration at accept time.
          */
@@ -673,7 +676,7 @@ class NIDManager {
       }
 
       // Transfer NID.
-      if (rx.command == CMD.TRANSFER) {
+      if (rx.command == CMD.SELL) {
         if (nidObj.status != STATUS_EXPIRED) {
           if (nidObj.status == STATUS_VALID) {
             // First valid transfer cmd.
@@ -686,6 +689,12 @@ class NIDManager {
           nidObj = NIDManager.updateNidObjFromRX(nidObj, rx);
         }
       }
+
+      if (rx.command == CMD.TRANSFER) {
+        nidObj = NIDManager.updateNidObjFromRX(nidObj, rx);
+        rxArray.push(rx);
+      }
+
     });
 
     nidObj.rxArray = rxArray; // For debug purpose only.
@@ -755,7 +764,7 @@ class NIDManager {
           nidObj.user_update_tx[lowerKey] = rtx.hash;
         }
       }
-      if (rtx.command == CMD.TRANSFER) {
+      if (rtx.command == CMD.SELL) {
         nidObj.sell_info = {
           price: rtx.output.price,
           buyer: rtx.output.buyer,
@@ -766,6 +775,10 @@ class NIDManager {
           sell_txid: rtx.hash
         };
         nidObj.tf_update_tx = rtx.hash;
+      }
+      if (rtx.command == CMD.TRANSFER) {
+        nidObj.owner_key = rtx.output.owner_key;
+        nidObj.owner = BSVUtil.getWalletAddressFromPublicKey(rtx.output.owner_key).toString();
       }
     }
     return nidObj;
@@ -1293,7 +1306,6 @@ class RegisterOutput extends TransactionOutput {
     try {
       // Suppose the output array has a fixed order.
       // output 0 - OP_RETURN.
-      // output 1 - Payment to Admin.
       this.owner_key = txOutArray[0].s5;
       if (txOutArray[0].s6 != null) {
         var extra = JSON.parse(txOutArray[0].s6);
@@ -1333,10 +1345,10 @@ class NopOutput extends TransactionOutput {
 
 
 /**
- * Transaction output for transfer tx.
+ * Transaction output for sell tx.
  * @extends {TransactionOutput}
  */
-class TransferOutput extends TransactionOutput {
+class SellOutput extends TransactionOutput {
 
   /**
    * @param {Array} txOutArray Array of tx output.
@@ -1351,16 +1363,16 @@ class TransferOutput extends TransactionOutput {
       this.expire = Number(extra["expire"]);
       this.clear_data = extra["clear_data"];
     } catch (err) {
-      throw new InvalidFormatOutputError("Invalid format for TransferOutput class.");
+      throw new InvalidFormatOutputError("Invalid format for SellOutput class.");
     }
   }
 }
 
 /**
- * Transaction output for accept tx.
+ * Transaction output for buy tx.
  * @extends {TransactionOutput}
  */
-class AcceptTransferOutput extends TransactionOutput {
+class BuyOutput extends TransactionOutput {
 
   /**
    * @param {Array} txOutArray Array of tx output.
@@ -1370,8 +1382,6 @@ class AcceptTransferOutput extends TransactionOutput {
 
     // Suppose the output array has a fixed order.
     // output 0 - OP_RETURN.
-    // output 1 - Payment to Admin.
-    // output 2 - Payment to NID seller.
     try {
       var extra = JSON.parse(txOutArray[0].s6);
       this.transferTx = extra['sell_txid'];
@@ -1379,7 +1389,43 @@ class AcceptTransferOutput extends TransactionOutput {
       this.agent = txOutArray[0].s7;
       this.owner_key = txOutArray[0].s5;
     } catch (err) {
-      throw new InvalidFormatOutputError("Invalid format for AcceptTransferOutput class.");
+      throw new InvalidFormatOutputError("Invalid format for BuyOutput class.");
+    }
+  }
+}
+
+/**
+ * Transaction output for transfer tx.
+ * @extends {TransactionOutput}
+ */
+class TransferOutput extends TransactionOutput {
+
+  /**
+   * @param {Array} txOutArray Array of tx output.
+   */
+  constructor(txOutArray) {
+    super(txOutArray);
+
+    // Suppose the output array has a fixed order.
+    // output 0 - OP_RETURN.
+    // output 1:Identity
+    // output 2:nUTXO to new owner
+    // output 3:1000 sat admin fee to payment address
+    try {
+      this.owner_key = txOutArray[0].s5;
+      this.transfer_fee = txOutArray[3].e.v;
+      this.payment_addr = txOutArray[3].e.a;
+    } catch (err) {
+      throw new InvalidFormatOutputError("Invalid format for BuyOutput class.");
+    }
+
+    if (this.transfer_fee < 1000) {
+      throw new InvalidFormatOutputError("Transfer command must pay admin fee 1000 satoshi.");
+    }
+
+    let adminAddr = Util.getTLDFromRegisterProtocol(this.protocol)[1]
+    if (this.payment_addr != adminAddr) {
+      throw new InvalidFormatOutputError("Payment failed, admin address is incorrect.");
     }
   }
 }
@@ -1688,5 +1734,6 @@ module.exports = {
   NidFetcher: NidFetcher,
   NidLoader: NidLoader,
   NIDManager: NIDManager,
-  CrossDBReader: CrossDBReader
+  CrossDBReader: CrossDBReader,
+  BSVWriter:BSVWriter,
 }

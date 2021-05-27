@@ -2,17 +2,25 @@ var isBrowser = isBrowser || new Function("try {return this===window;}catch(e){ 
 
 var config = {
     "development": {
-        "config_id": "development",
-        "node_port": 9000,
+        "node_info":{
+            payment:"14ganPKEiFHPZYmQ88MUTqwrRd7JYQsv7L", //nbdomain of the owner. Payment (if any) will goto this address.
+            domain:null, //domain name of the node. Replace with real domain
+            contact:"",//contact email or phone or... of the owner
+            prices:{
+                domainHost:10000 //host user's triditional domain and link to a nbdomain
+            }
+        },
+        "remote_admin":{
+            enable:false,
+            passcode:"nbnodeadmin",
+        },
+        "exit_count":0, //exit the crawl process each x minutes. Used with PM2 to restart process every x minutes. 0 for no exit
+        "node_port": 9000, //local port of the http service
         "proxy_map" : {
             "/api/": "api",
             "/web/": "web",
         },
-        "urls" : {
-            "web":"xxx"  //replace with your actual web service url, like https://api.nbdomain.com/web/ 
-        },
         "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
-        "auth_file": "/Users/xiaodao/development/BSV/nbservice.conf",
         "admin": {
             "transfer_fee":  1000, 
             "transfer_fee_rate": 0.1
