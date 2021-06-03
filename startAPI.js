@@ -209,14 +209,17 @@ app.listen(defaultConfig.node_port, async function () {
   }
   console.log(localWebGateway, localAPIGateway);
   app.use(cors());
-  app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(bodyParser.json());
+
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: false, parameterLimit: 50000 }));
 });
 
 //Start HTTPS server
 if (defaultConfig.node_info.domain) {
   (async () => {
     const localAPI = "http://localhost:" + defaultConfig.node_port;
+    appSSL.use(bodyParser.json({ limit: '50mb' }));
+    appSSL.use(bodyParser.urlencoded({ limit: '50mb', extended: true, parameterLimit: 50000 }));
     appSSL.use(createProxyMiddleware("**", { target: localAPI }));
     let domainError = {};
     greenlock = require("@root/greenlock").create({
