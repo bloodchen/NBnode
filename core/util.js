@@ -152,7 +152,12 @@ class Util {
         }
         return [null, null];
     }
-
+    static getProcotolFromTLD(tld){
+        if(SUB_PROTOCOL_MAP[tld]){
+            return SUB_PROTOCOL_MAP[tld].address.protocol;
+        }
+        return null;
+    }
     static getTLDFromRegisterProtocol(register) {
         for (let tld in SUB_PROTOCOL_MAP) {
             let tldcfg = SUB_PROTOCOL_MAP[tld];

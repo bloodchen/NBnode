@@ -8,11 +8,14 @@ const fs = require('fs');
 const defaultConfig = config[config.env];
 var path = require('path');
 const ipc = require('node-ipc');
+const sqldb = require('../../core/dbMgr.js');
+const UTIL = require('../../core/util.js');
 
 var express = require('express');
 var bodyParser = require("body-parser");
 var cors = require('cors');
 const { stringify } = require('querystring');
+const { request } = require('express');
 var app = express();
 
 app.use(cors());
@@ -57,6 +60,7 @@ function connectToCore() {
     let result = "";
     ipc.config.id = 'apiService';
     ipc.config.retry = 1500;
+    ipc.config.debug = false;
     ipc.connectTo(
         'core',
         function () {
@@ -113,7 +117,7 @@ app.get('/', function (req, res, next) {
             } else {
                 nidLoader.readLocalPredictNid(nid, function (data) {
                     resp = data;
-                    if (!f && resp.obj && resp.obj.keys) {
+                   /* if (!f && resp.obj && resp.obj.keys) {
                         for (let k in resp.obj.keys) {
                             let v = resp.obj.keys[k];
                             if (v.length > 512) {
@@ -121,7 +125,7 @@ app.get('/', function (req, res, next) {
                             }
                         }
                         resp.obj.truncated = true;
-                    }
+                    } */
                     res.json(resp);
                 })
             }
@@ -152,6 +156,32 @@ app.post('/sendTx',async function(req,res){
     ret = await getResultFromCore(eventID);
     console.log("return from core:",ret);
     res.json(ret);
+});
+app.get('/queryKeys',function(req,res){
+    const tld = req.query['tld']?req.query['tld']:'b';
+    const protocol = UTIL.getProcotolFromTLD(tld);
+    if(protocol){
+        const sql = new sqldb.SQLDB(protocol);
+        const num = req.query['num']?req.query['num']:50;
+        const startID = req.query['startID']?req.query['startID']:0;
+        const tags = req.query['tags']?req.query['tags']:null;
+        const result = sql.queryKeys({v:1,num:num,startID:startID,tags:tags});
+        res.json(result);
+        return;
+    }
+    res.json({code:1,message:'error'});
+});
+app.get('/queryTags',function(req,res){
+    const tld = req.query['tld']?req.query['tld']:'b';
+    const protocol = UTIL.getProcotolFromTLD(tld);
+    if(protocol){
+        const sql = new sqldb.SQLDB(protocol);
+        const exp = req.query['exp'];
+        const result = sql.queryTags(exp?exp:null);
+        res.json(result);
+        return;
+    }
+    res.json({code:1,message:'error'});
 });
 app.get('/radmin',function(req,res){
     const eventID = Date.now().toString();

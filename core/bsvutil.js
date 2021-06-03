@@ -42,7 +42,7 @@ class BSVUtil {
      * @param {string} publicKey public key of a user.
      * @returns {string} Address of given user.
      */
-    static getWalletAddressFromPublicKey(publicKey) {
+    static getAddressFromPublicKey(publicKey) {
         if (publicKey == null || publicKey == "") {
             return null;
         }

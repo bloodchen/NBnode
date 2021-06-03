@@ -1,6 +1,7 @@
 const config = require('./config.js');
 const BSVName = require('./nbdomain_core.js');
-const sqlDB = require('./sqldb.js');
+//const sqlDB = require('./sqldb.js');
+const sqlDB = require('./dbMgr.js');
 const CMD = require('./cmd.js');
 const Util = require('./util.js')
 const cron = require('node-cron');
@@ -32,7 +33,8 @@ async function sendRawTX(rawtx){
 			processTX(tx,'r');
 		ret.code = res.txid==="" ? 1:0;
 		ret.txid = res.txid;
-		ret.message = "success";
+		if(ret.code==0)
+			ret.message = "success";
 	}catch(e){
 		console.log(e);
 		ret.message = e.message;
@@ -116,7 +118,7 @@ async function processTX(tx, type) {
 	if (type === "u" || type === "r") {
 		if(tx_u.findIndex(tx1=>tx1.hash===tx.tx.h)!=-1){
 			console.log("already handled utx:",tx.tx.h);
-			return;
+			//return;
 		}
 		let newTx = {
 			txHash: tx.tx.h,

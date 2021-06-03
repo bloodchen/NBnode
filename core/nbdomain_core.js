@@ -10,7 +10,8 @@ const filepay = require('filepay');
 const fetch = require('node-fetch');
 const axios = require('axios');
 const config = require('./config.js');
-const sqlDB = require('./sqldb.js');
+//const sqlDB = require('./sqldb.js');
+const sqlDB = require('./dbMgr.js');
 const Util = require('./util.js');
 const BSVUtil = require('./bsvutil.js');
 const CMD = require('./cmd.js');
@@ -184,7 +185,7 @@ class NidFetcher {
       try {
         if (rtx.command === CMD.REGISTER) {
           rtx.output = new RegisterOutput(tx.out);
-          let addr = BSVUtil.getWalletAddressFromPublicKey(rtx.publicKey);
+          let addr = BSVUtil.getAddressFromPublicKey(rtx.publicKey);
           let authorsities = Util.getAdmins(rtx.output.protocol, rtx.blockId);
           if (!(authorsities.includes(addr))) {
             // Input address not in authorities.
@@ -199,7 +200,7 @@ class NidFetcher {
         }
         if (rtx.command === CMD.BUY) {
           rtx.output = new BuyOutput(tx.out);
-          let addr = BSVUtil.getWalletAddressFromPublicKey(rtx.publicKey);
+          let addr = BSVUtil.getAddressFromPublicKey(rtx.publicKey);
           let authorsities = Util.getAdmins(rtx.output.protocol, rtx.blockId);
           if (!(authorsities.includes(addr))) {
             // Input address not in authorities.
@@ -340,7 +341,7 @@ class NIDManager {
   });
   }
 
-  processNid(nbdomain) {
+  parseNid(nbdomain) {
     nbdomain = nbdomain.toLowerCase();
     this.domain = nbdomain;
     if (nbdomain.lastIndexOf(".") === -1) {
@@ -366,9 +367,9 @@ class NIDManager {
     }
   }
 
-  nidProcessed(domain) {
+  isValid(domain) {
     try {
-      this.processNid(domain);
+      this.parseNid(domain);
       return true;
     } catch (e) {
       return false;
@@ -552,12 +553,12 @@ class NIDManager {
   }
 
   /**
-   * Filter out invalid commands of a NID chain.
+   * Process NID object according to the transactions
    * @param {NIDObject} nidObj The NIDObject instane.
    * @param {Array} rtxArray Array of ReadableTransactions.
    * @return {NIDObject} Updated NIDObject.
    */
-  static filterOutInvalidRtx_(nidObj, rtxArray) {
+  static fillNIDFromTX(nidObj, rtxArray) {
 
     if (rtxArray == null) {
       return null;
@@ -566,7 +567,7 @@ class NIDManager {
     let rxArray = [];
     let firstRegRtx = null;
     if (nidObj.owner_key == null) {
-      nidObj = NIDManager.resetNidSetting(nidObj, null, null, STATUS_EXPIRED);
+      nidObj = NIDManager.resetNid(nidObj, null, null, STATUS_EXPIRED);
       firstRegRtx = NIDManager.findFirstRegister_(rtxArray);
       if (firstRegRtx != null) {
         nidObj.nid = firstRegRtx.output.nid;
@@ -598,7 +599,7 @@ class NIDManager {
 
         // Register after NID expired.
         if ((rx.command == CMD.REGISTER) && nidObj.status == STATUS_EXPIRED) {
-          nidObj = NIDManager.resetNidSetting(nidObj, rxOwner, rx.hash, STATUS_VALID);
+          nidObj = NIDManager.resetNid(nidObj, rxOwner, rx.hash, STATUS_VALID);
           rxArray.push(rx);
         }
 
@@ -610,7 +611,7 @@ class NIDManager {
           if (NIDManager.validNIDTransfer_(nidObj, rx)) {
             rxArray.push(rx);
             let clearData = nidObj.sell_info.clear_data;
-            nidObj = NIDManager.resetNidSetting(nidObj, rxOwner, rx.hash, STATUS_VALID, clearData);
+            nidObj = NIDManager.resetNid(nidObj, rxOwner, rx.hash, STATUS_VALID, clearData);
           }
         }
 
@@ -620,7 +621,7 @@ class NIDManager {
             let authorized = false;
             for (var name in nidObj.admins) {
               var adminAddress = nidObj.admins[name];
-              if (adminAddress == BSVUtil.getWalletAddressFromPublicKey(rxOwner)) {
+              if (adminAddress == BSVUtil.getAddressFromPublicKey(rxOwner)) {
                 authorized = true;
               }
             }
@@ -634,7 +635,7 @@ class NIDManager {
         // NOP.
         if (rx.command == CMD.NOP) {
           // Check if it's from admin.
-          // let addr = BSVUtil.getWalletAddressFromPublicKey(rx.publicKey);
+          // let addr = BSVUtil.getAddressFromPublicKey(rx.publicKey);
           rxArray.push(rx);
         }
         return;
@@ -671,7 +672,7 @@ class NIDManager {
         if (NIDManager.validNIDTransfer_(nidObj, rx)) {
           rxArray.push(rx);
           let clearData = nidObj.sell_info.clear_data;
-          nidObj = NIDManager.resetNidSetting(nidObj, rxOwner, rx.hash, STATUS_VALID, clearData);
+          nidObj = NIDManager.resetNid(nidObj, rxOwner, rx.hash, STATUS_VALID, clearData);
         }
       }
 
@@ -702,7 +703,7 @@ class NIDManager {
       nidObj.last_txid = rxArray[rxArray.length - 1].hash;
     }
     if (nidObj.owner_key != null) {
-      nidObj.owner = BSVUtil.getWalletAddressFromPublicKey(nidObj.owner_key);
+      nidObj.owner = BSVUtil.getAddressFromPublicKey(nidObj.owner_key);
     }
     // Return deep copy.
     return JSON.parse(JSON.stringify(nidObj));
@@ -714,10 +715,10 @@ class NIDManager {
    * @param {!string} newOwner 
    * @param {!Number} newStatus 
    */
-  static resetNidSetting(nidObj, newOwner, newOnwerTxid, newStatus, clearData=true) {
+  static resetNid(nidObj, newOwner, newOnwerTxid, newStatus, clearData=true) {
     nidObj.owner_key = newOwner;
     if (newOwner != null) {
-      nidObj.owner = BSVUtil.getWalletAddressFromPublicKey(nidObj.owner_key);
+      nidObj.owner = BSVUtil.getAddressFromPublicKey(nidObj.owner_key);
       nidObj.txid = newOnwerTxid;
     } else {
       nidObj.owner = null;
@@ -754,7 +755,11 @@ class NIDManager {
           let lowerKey = key.toLowerCase();
           nidObj.keys[lowerKey] = rtx.output.value[key];
           nidObj.key_update_tx[lowerKey] = rtx.hash;
+          if(rtx.output.tags){
+            nidObj.tag_map[lowerKey] = rtx.output.tags;
+          }
         }
+        
       }
       if (rtx.command == CMD.USER) {
         // Change deep merge to shallow merge.
@@ -771,14 +776,14 @@ class NIDManager {
           expire: rtx.output.expire,
           note: rtx.output.note,
           clear_data: rtx.output.clear_data,
-          seller: BSVUtil.getWalletAddressFromPublicKey(rtx.publicKey).toString(),
+          seller: BSVUtil.getAddressFromPublicKey(rtx.publicKey).toString(),
           sell_txid: rtx.hash
         };
         nidObj.tf_update_tx = rtx.hash;
       }
       if (rtx.command == CMD.TRANSFER) {
         nidObj.owner_key = rtx.output.owner_key;
-        nidObj.owner = BSVUtil.getWalletAddressFromPublicKey(rtx.output.owner_key).toString();
+        nidObj.owner = BSVUtil.getAddressFromPublicKey(rtx.output.owner_key).toString();
       }
     }
     return nidObj;
@@ -860,7 +865,7 @@ class NIDManager {
               this.nidObjMap[nid] = onDiskNid;
             }
           }
-          this.nidObjMap[nid] = NIDManager.filterOutInvalidRtx_(this.nidObjMap[nid], [rtx]);
+          this.nidObjMap[nid] = NIDManager.fillNIDFromTX(this.nidObjMap[nid], [rtx]);
         });
 
         for (let nid in this.nidObjMap) {
@@ -897,7 +902,7 @@ class NIDManager {
       }
 
       if (!(ADDRESS in keys[CONFIG_KEY])) {
-        keys[CONFIG_KEY][ADDRESS] = BSVUtil.getWalletAddressFromPublicKey(pubKey);
+        keys[CONFIG_KEY][ADDRESS] = BSVUtil.getAddressFromPublicKey(pubKey);
       }
     }
   }
@@ -942,7 +947,7 @@ class NIDManager {
           }
           // No unconfirmed transaction on this nid.
         } else {
-          let predictNidObj = NIDManager.filterOutInvalidRtx_(this.nidObj, urtxMap[this.nid]);
+          let predictNidObj = NIDManager.fillNIDFromTX(this.nidObj, urtxMap[this.nid]);
           predictNidObj.has_unconfirmed = true;
           if (predictNidObj.owner_key != null) {
             resp.code = NO_ERROR;
@@ -1004,7 +1009,7 @@ class NIDManager {
     this.fetchRTXsPromise_().then(rtxArray => {
       if (rtxArray != null && rtxArray.length > 0) {
         // Update nidObj with fetched data.
-        nidRef.nidObj = NIDManager.filterOutInvalidRtx_(this.nidObj, rtxArray);
+        nidRef.nidObj = NIDManager.fillNIDFromTX(this.nidObj, rtxArray);
         if (nidRef.nidObj.owner_key != null) {
           nidRef.saveNidObjectToDB(nidRef.nidObj);
         }
@@ -1111,7 +1116,7 @@ class NIDManager {
    * Get last updated blockid.
    */
   loadBatchReadLastBlockId() {
-    let data = this.sql.getConfig(BATCH_READ_CONFIG);
+    let data = this.sql.getLastParsedBlockID();
     if (data != null) {
       return data.blockId;
     }
@@ -1123,16 +1128,12 @@ class NIDManager {
    * @param {!Number} lastBlkId 
    */
   saveBatchReadLastBlockId(lastBlkId) {
-    // this.db.saveJson({
-    //   "blockId": lastBlkId, 
-    //   "version": NAMEBSV_SCRIPT_VERSION, 
-    //   "nid": BATCH_READ_CONFIG
-    // });
-    this.sql.saveOrUpdateConfig(BATCH_READ_CONFIG, {
+   /* this.sql.saveOrUpdateConfig(BATCH_READ_CONFIG, {
       "blockId": lastBlkId,
       "version": NAMEBSV_SCRIPT_VERSION,
       "nid": BATCH_READ_CONFIG
-    });
+    });*/
+    this.sql.saveLastParsedBlockID(lastBlkId);
   }
 
   // saveLog(rtxArray) {
@@ -1203,7 +1204,7 @@ class TransactionOutput {
     this.protocol = txOutArray[0].s2;
     this.nid = txOutArray[0].s3.toLowerCase();
     this.cmd = txOutArray[0].s4.toLowerCase();
-    this.agent = txOutArray[0].s6; // optional agent in s6.
+    //this.agent = txOutArray[0].s6; // optional agent in s6.
     if (!Util.isValidString(this.nid)) {
       throw new InvalidFormatOutputError("Invalid NID string");
     }
@@ -1223,6 +1224,9 @@ class MetaDataOutput extends TransactionOutput {
     super(txOutArray);
     this.bitfs = null;
     try {
+      if(this.nid=='10200'){
+        console.log('found');
+      }
       if (txOutArray[0].s5 != null) {
         var extra = JSON.parse(txOutArray[0].s5);
         this.value = extra;
@@ -1232,6 +1236,11 @@ class MetaDataOutput extends TransactionOutput {
       } else if (txOutArray[0].f5 != null) {
         this.bitfs = txOutArray[0].f5;
         this.value = {};
+      }
+      if(txOutArray[0].s6){
+        const tags = JSON.parse(txOutArray[0].s6).tags;
+        if(tags)
+          this.cmd=="key"? this.tags = tags : this.utags = tags;
       }
 
       if (typeof this.value != "object") {
@@ -1321,7 +1330,7 @@ class RegisterOutput extends TransactionOutput {
     }
 
     try {
-      BSVUtil.getWalletAddressFromPublicKey(this.owner_key);
+      BSVUtil.getAddressFromPublicKey(this.owner_key);
     } catch (err) {
       throw new InvalidFormatOutputError("Invalid format for RegisterOutput class.");
     }
@@ -1483,6 +1492,7 @@ class NIDObject {
     this.lastTxTs = 0;
     this.keys = {};
     this.key_update_tx = {};
+    this.tag_map = {};
     this.users = {};
     this.user_update_tx = {};
     this.admins = [];
@@ -1501,7 +1511,7 @@ class NidLoader {
   constructor(nbdomain, protocol) {
     if (nbdomain != null) {
       this.nidManager = new NIDManager(null);
-      if (!this.nidManager.nidProcessed(nbdomain)) {
+      if (!this.nidManager.isValid(nbdomain)) {
         throw new Error("Invalid NBDomain!");
       }
     } else if (protocol != null) {
@@ -1518,7 +1528,7 @@ class NidLoader {
    * @param {*} callback callback method.
    */
   readLocalNid(domain, callback) {
-    if (!Util.isValidDomain(domain) || !this.nidManager.nidProcessed(domain)) {
+    if (!Util.isValidDomain(domain) || !this.nidManager.isValid(domain)) {
       var resp = {
         code: ERROR_NID_NOT_VALID,
         message: `NID [${domain}] is not valid!`
@@ -1530,7 +1540,7 @@ class NidLoader {
     this.nidManager.getLocalNidObject().then(resp => {
       // Deep copy since keys will be output as strings.
       resp.obj = JSON.parse(JSON.stringify(resp.obj));
-      resp = this.checkSubDomain(resp);
+      resp = this.getSubDomain(resp);
       callback(resp);
     }).catch(err => {
       console.log(err);
@@ -1538,11 +1548,14 @@ class NidLoader {
     });
   }
 
-  checkSubDomain(resp) {
+  getSubDomain(resp) {
     if (this.nidManager.subDomain != null && resp.code == NO_ERROR) {
       if (this.nidManager.subDomain in resp.obj.keys) {
         resp.txid = resp.obj.key_update_tx[this.nidManager.subDomain];
         resp.obj = resp.obj.keys[this.nidManager.subDomain];
+        if(resp.obj==="$truncated"){
+          resp.obj = this.nidManager.sql.readKey(this.nidManager.subDomain+"."+this.nidManager.nid);
+        }
       } else {
         resp = {
           code: ERROR_KEY_NOTFOUND,
@@ -1564,7 +1577,7 @@ class NidLoader {
    * @param {*} callback callback method.
    */
   readLocalPredictNid(domain, callback) {
-    if (!Util.isValidDomain(domain) || !this.nidManager.nidProcessed(domain)) {
+    if (!Util.isValidDomain(domain) || !this.nidManager.isValid(domain)) {
       var resp = {
         code: ERROR_NID_NOT_VALID,
         message: `NID [${domain}] is not valid!`
@@ -1582,7 +1595,7 @@ class NidLoader {
           nidObj.tf_update_tx = 0;
           nidObj.status = STATUS_VALID;
         }
-        resp = this.checkSubDomain(resp);
+        resp = this.getSubDomain(resp);
       }
       if (resp.code == ERROR_NOTFOUND && this.nidManager.subDomain == null && this.nidManager.user == null) {
         NIDManager.fetchDomainAvailibility(this.nidManager.domain, function (r) {
@@ -1639,7 +1652,7 @@ class NidLoader {
    * @param {*} callback callback method.
    */
   readLocalURTX(domain, callback) {
-    if (!Util.isValidDomain(domain) || !this.nidManager.nidProcessed(domain)) {
+    if (!Util.isValidDomain(domain) || !this.nidManager.isValid(domain)) {
       var resp = {
         code: ERROR_NID_NOT_VALID,
         message: `NID [${domain}] is not valid!`
@@ -1661,7 +1674,7 @@ class NidSynchronizer {
   constructor(nbdomain, protocol) {
     if (nbdomain != null) {
       this.nidManager = new NIDManager(null);
-      if (!this.nidManager.nidProcessed(nbdomain)) {
+      if (!this.nidManager.isValid(nbdomain)) {
         throw new Error("NidSynchronizer class needs either a valid nbdomain or protocol!");
       }
     } else if (protocol != null) {

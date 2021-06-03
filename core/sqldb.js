@@ -205,9 +205,9 @@ class SQLDB {
                 let rtx = rtxArray[i];
 
                 if (this.checkLog("transac", rtx.hash)) {
-                    continue;
+                    continue; //already has it
                 }
-                //this.deleteUnconfirmedLog(rtx.hash);
+                //delete from unconfirmed tx
                 let sql_delete = `DELETE FROM "unconfirmed_transac" where "hash" = ?;`
                 const rm = db.prepare(sql_delete).run(rtx.hash);
 
