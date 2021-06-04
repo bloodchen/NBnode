@@ -629,7 +629,7 @@ class SQLDB {
     }
 
     queryFailedBitFSLog() {
-        return this.txDB.queryUnconfirmedLog();
+        return this.txDB.queryFailedBitFSLog();
     }
 
     checkLog(table, hash) {
