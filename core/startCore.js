@@ -33,8 +33,7 @@ async function sendRawTX(rawtx){
 			processTX(tx,'r');
 		ret.code = res.txid==="" ? 1:0;
 		ret.txid = res.txid;
-		if(ret.code==0)
-			ret.message = "success";
+		ret.code==0 ? ret.message = "success":ret.message=res.resultDescription;
 	}catch(e){
 		console.log(e);
 		ret.message = e.message;
