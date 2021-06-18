@@ -51,7 +51,17 @@ const PUBLICKEY = 'public_key';
 const ADDRESS = 'address';
 
 
-
+ NBLib.init({
+  // API: "https://manage.nbdomain.com/node/", //resolver endpoint 
+  API: "http://localhost:" + defaultConfig.node_port + "/api/",
+  adminAPI: "http://localhost:" + defaultConfig.node_port + "/admin/",
+  minerAPI: "https://merchantapi.taal.com", //endpoint of miner API
+  token: "111", //api token required by resolver
+  debug: true, //enable debug or not. 
+  tld_config: defaultConfig.tld_config,
+  sendByNode: false,
+  enable_write: true  //enable functions that can update and write value to NBdomain
+});
 /**
  * Class to write data to BSV network.
  */
@@ -328,17 +338,7 @@ class NIDManager {
   }
 
   async initSync() {
-    await NBLib.init({
-      // API: "https://manage.nbdomain.com/node/", //resolver endpoint 
-      API: "http://localhost:" + defaultConfig.node_port + "/api/",
-      adminAPI: "http://localhost:" + defaultConfig.node_port + "/admin/",
-      minerAPI: "https://merchantapi.taal.com", //endpoint of miner API
-      token: "111", //api token required by resolver
-      debug: true, //enable debug or not. 
-      tld_config: defaultConfig.tld_config,
-      sendByNode: false,
-      enable_write: true  //enable functions that can update and write value to NBdomain
-  });
+    
   }
 
   parseNid(nbdomain) {
@@ -410,16 +410,6 @@ class NIDManager {
           pay_txid: payTxHash
         }
         const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
-        /*var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
-          nid: this.nid,
-          protocol: this.protocol,
-          command: CMD.REGISTER,
-          privateKey: this.getRegKey(),
-          ownerPublicKey: ownerPublicKey,
-          agent: null,
-          extra: JSON.stringify(ext),
-          nutxo: NBLib._genNUTXO(addr, 2)
-        });*/
         let resp = {code: NO_ERROR};
         let r = await NBLib.admin_regDomain(this.domain, this.getRegKey(), ownerPublicKey, payTxHash, null)
         if (r.returnResult !== "success") {
@@ -449,17 +439,6 @@ class NIDManager {
       sell_txid: sellTxid
     }
     const addr = filepay.bsv.PublicKey.fromHex(ownerPublicKey).toAddress().toString();
-    /*var datapayConfig = this.bsvWriter.createRegDataPayConfigHeader({
-      nid: this.nid,
-      protocol: this.protocol,
-      command: CMD.BUY,
-      privateKey: this.getRegKey(),
-      ownerPublicKey: ownerPublicKey,
-      agent: null,
-      extra: JSON.stringify(ext),
-      last_txid: sellTxid,
-      nutxo: NBLib._genNUTXO(addr, 2)
-    });*/
     let resp = {code: NO_ERROR};
     let r = await NBLib.admin_buyDomain(this.domain,this.getRegKey(),ownerPublicKey,sellTxid,payTxHash)
     if (r.returnResult !== "success") {
@@ -563,7 +542,6 @@ class NIDManager {
     if (rtxArray == null) {
       return null;
     }
-
     let rxArray = [];
     let firstRegRtx = null;
     if (nidObj.owner_key == null) {
@@ -857,6 +835,9 @@ class NIDManager {
         // Add transaction to Nid one by one in their creation order;
         rtxArray.forEach((rtx, _) => {
           let nid = rtx.output.nid;
+          if(nid=="102844"){
+            console.log("found");
+          }
           if (!(nid in this.nidObjMap)) {
             let onDiskNid = this.loadNIDObjFromDB(nid);
             if (onDiskNid == null) {
@@ -1421,7 +1402,7 @@ class TransferOutput extends TransactionOutput {
     // output 2:nUTXO to new owner
     // output 3:1000 sat admin fee to payment address
     try {
-      this.owner_key = txOutArray[0].s5;
+      this.owner_key = txOutArray[0].s5.toLowerCase();
       this.transfer_fee = txOutArray[3].e.v;
       this.payment_addr = txOutArray[3].e.a;
     } catch (err) {

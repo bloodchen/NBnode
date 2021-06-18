@@ -22,7 +22,7 @@
     "greenlock-express": "^4.0.3",
     "http-proxy-middleware": "^1.0.6",
     "minercraft": "0.0.8",
-    "nblib": "^1.0.71",
+    "nblib": "^1.0.75",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
     "node-ipc": "^9.1.4",
