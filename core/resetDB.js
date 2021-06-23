@@ -9,6 +9,8 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+var myArgs = process.argv.slice(2);
+const resetDomain = myArgs[0]==='domain' ;
 
 rl.question('Are your sure you want to reset Databases？(yes/no)', (answer) => {
   rl.close();
@@ -21,14 +23,15 @@ rl.question('Are your sure you want to reset Databases？(yes/no)', (answer) => 
 	    if (!fs.existsSync(`${BSV_DB_PATH}/${protocol}/`)){
 	        fs.mkdirSync(`${BSV_DB_PATH}/${protocol}/`);
 	    }
-
-	    fs.copyFile(`${BSV_DB_PATH}/${TX_DB}`, `${BSV_DB_PATH}/${protocol}/${TX_DB}`, (err) => {
-	        if (err) throw err;
-	        console.log('Created db for protocol:' + protocol);
-	      });
+		if(!resetDomain){
+			fs.copyFile(`${BSV_DB_PATH}/${TX_DB}`, `${BSV_DB_PATH}/${protocol}/${TX_DB}`, (err) => {
+				if (err) throw err;
+				console.log('Created tx db for protocol:' + protocol);
+			});
+		}
 		fs.copyFile(`${BSV_DB_PATH}/${DOMAIN_DB}`, `${BSV_DB_PATH}/${protocol}/${DOMAIN_DB}`, (err) => {
 	        if (err) throw err;
-	        console.log('Created db for protocol:' + protocol);
+	        console.log('Created domain db for protocol:' + protocol);
 	      });
 	});
   }

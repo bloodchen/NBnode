@@ -835,9 +835,9 @@ class NIDManager {
         // Add transaction to Nid one by one in their creation order;
         rtxArray.forEach((rtx, _) => {
           let nid = rtx.output.nid;
-          if(nid=="102844"){
-            console.log("found");
-          }
+//          if(nid=="bloodchen"){
+//            console.log("found");
+//         }
           if (!(nid in this.nidObjMap)) {
             let onDiskNid = this.loadNIDObjFromDB(nid);
             if (onDiskNid == null) {

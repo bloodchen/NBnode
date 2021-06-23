@@ -82,7 +82,7 @@ function startIPCSever(){
 	ipc.server.start();
 }
 async function processTX(tx, type) {
-	/*if(tx.tx.h=="5248f10110ff59f45b8901ed7b41b592c6867dac9e3a1a3c259582e626eed106"){
+	/*if(tx.tx.h=="548933afc6b64d83b9d30f7dfd71b6f80e11c2dc4d84c6460842084b8a1aa93f"){
 		console.log("found");
 	}*/
 	if (type == "c") {
@@ -234,7 +234,7 @@ cron.schedule('*/1 * * * *', async () => {
 		
 	}
 	lastHeight = res.height;
-	if(defaultConfig.exit_count&& (exit_counter++>defaultConfig.exit_count) ){ //exit process every hour, so the PM2 could restart it.
+	if(defaultConfig.exit_count&& (++exit_counter>defaultConfig.exit_count) ){ //exit process every hour, so the PM2 could restart it.
 		console.log("exit_count:",exit_counter,"Exit...");
 		process.exit(-2);
 	}
