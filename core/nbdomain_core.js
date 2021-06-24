@@ -1205,7 +1205,7 @@ class MetaDataOutput extends TransactionOutput {
     super(txOutArray);
     this.bitfs = null;
     try {
-      if(this.nid=='10200'){
+      if(this.nid=='hello123'){
         console.log('found');
       }
       if (txOutArray[0].s5 != null) {
@@ -1219,9 +1219,11 @@ class MetaDataOutput extends TransactionOutput {
         this.value = {};
       }
       if(txOutArray[0].s6){
-        const tags = JSON.parse(txOutArray[0].s6).tags;
-        if(tags)
-          this.cmd=="key"? this.tags = tags : this.utags = tags;
+        try{
+          const tags = JSON.parse(txOutArray[0].s6).tags;
+          if(tags)
+            this.cmd=="key"? this.tags = tags : this.utags = tags;
+        }catch(e){}
       }
 
       if (typeof this.value != "object") {
@@ -1534,8 +1536,15 @@ class NidLoader {
       if (this.nidManager.subDomain in resp.obj.keys) {
         resp.txid = resp.obj.key_update_tx[this.nidManager.subDomain];
         resp.obj = resp.obj.keys[this.nidManager.subDomain];
-        if(resp.obj==="$truncated"){
-          resp.obj = this.nidManager.sql.readKey(this.nidManager.subDomain+"."+this.nidManager.nid);
+        if(resp.obj==="$truncated")
+        {
+          let va = this.nidManager.sql.readKey(this.nidManager.subDomain+"."+this.nidManager.nid);
+          try{
+            va = JSON.parse(va);
+          }catch(e){
+            va = va.slice(1,va.length-1);
+          }
+          resp.obj = va;
         }
       } else {
         resp = {
