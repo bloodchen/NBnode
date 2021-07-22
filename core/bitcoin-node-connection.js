@@ -9,7 +9,7 @@
 // ------------------------------------------------------------------------------------------------
 
 const bsv = require('bsv')
-const { metadata } = require('run-sdk').util
+
 
 class BitcoinNodeConnection {
   constructor (zmq, rpc) {
