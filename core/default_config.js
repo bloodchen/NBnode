@@ -13,6 +13,7 @@ const API = 'planaria'
 const MATTERCLOUD_KEY = null
 const PLANARIA_TOKEN = null
 const NETWORK = 'main'
+const PORT = 0
 const TXDB = 'txs.db'
 const DMDB = 'domains.db'
 const WORKERS = 4
