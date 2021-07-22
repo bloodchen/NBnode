@@ -79,7 +79,6 @@ class Indexer {
     this.crawler.stop()
     if (this.api.disconnect) await this.api.disconnect()
     this.downloader.stop()
-    await this.executor.stop()
     this.database.close()
   }
 
