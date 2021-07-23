@@ -1,25 +1,16 @@
 
 
-const NBLib = require("nblib");
 const fs = require("fs");
 const url = require("url");
 const axios = require("axios");
 const punCode = require('punycode');
 //const bitfs = require("./bitfs.js");
 const ipfs = require("./ipfs.js");
-const u = require('./util.js');
-require('dotenv').config();
 
 class nbweb_mgr {
   async init(env) {
     //console.log(env);
     this.env = env;
-    await NBLib.init({
-      API: "http://localhost:" + env.node_port + "/api/",
-      token: process.env.NBToken,
-      debug: true,
-      enable_write: false
-    });
   }
   output_md(res, jsonReturn) {
     let text_template = fs.readFileSync(__dirname + "/template/text.html").toString();
@@ -32,6 +23,15 @@ class nbweb_mgr {
 
     return false;
   }
+  async readDomain(domain){
+    const url = "http://localhost:" + this.env.node_port + "/api/?nid="+domain;
+    try{
+      return (await axios.get(url)).data;
+    }catch(e){
+      console.log(e.message);
+      return null
+    }
+  }
   async handleURL(req,res, addr) {
     addr = "https://" + addr;
     let q = url.parse(addr, true);
@@ -43,7 +43,7 @@ class nbweb_mgr {
     const dots = hostname.split('.').length - 1;
     if (dots == 1) hostname = "*." + hostname;
     //hostname = encodeURI(hostname);
-    let res_content = await NBLib.readDomain(hostname);
+    let res_content = await this.readDomain(hostname);
     //console.log(res_content);
     if (res_content != null) {
       if (res_content.code == 0) {

@@ -59,7 +59,7 @@ app.get("/*", async (req, res) => {
 module.exports = function(env) {
   global_env = env;
   nbMgr.init(env);
-  console.log("get env:",env);
+//  console.log("get env:",env);
   return new Promise( (resolve)=>{
     const server = app.listen(0, function () {
         const port = server.address().port;
