@@ -114,9 +114,9 @@ class Resolver {
                 return this.readSubdomain(fullDomain);
             }
             obj = this.db.loadDomain(fullDomain) 
-            if (obj) {
-                obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
+            if (obj) {   
                 obj = reduceKeys_(obj, true)
+                obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
                 if (forceFull) { //expand $truncated keys
                     for (const key in obj.keys) {
                         if (obj.keys[key] === "$truncated") {
@@ -175,7 +175,7 @@ class Resolver {
                         lastResolvedId = rtx.id
                     })
                 } catch (e) {
-                    console.error(e);
+                    //console.error(e);
                 }
 
                 for (let domain in g_nidObjMap) {

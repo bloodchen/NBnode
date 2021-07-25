@@ -7,7 +7,7 @@
 const Indexer = require('./indexer')
 const Server = require('./server')
 const {
-  API, TXDB,DMDB, NETWORK, PORT, FETCH_LIMIT, WORKERS, MATTERCLOUD_KEY, PLANARIA_TOKEN, START_HEIGHT,
+  API, TXDB,DMDB, NETWORK, FETCH_LIMIT, WORKERS, MATTERCLOUD_KEY, PLANARIA_TOKEN, START_HEIGHT,
   MEMPOOL_EXPIRATION, ZMQ_URL, RPC_URL
 } = require('./config')
 const MatterCloud = require('./mattercloud')
@@ -44,7 +44,7 @@ switch (API) {
 const indexer = new Indexer(__dirname+"/db/"+TXDB,__dirname+"/db/"+DMDB, api, NETWORK, FETCH_LIMIT, WORKERS, logger,
   START_HEIGHT, MEMPOOL_EXPIRATION)
 
-server = new Server(indexer, logger, PORT)
+server = new Server(indexer, logger)
 
 // ------------------------------------------------------------------------------------------------
 // main

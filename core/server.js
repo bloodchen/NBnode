@@ -85,7 +85,6 @@ class Server {
   constructor(indexer, logger, port) {
     this.indexer = indexer
     this.logger = logger
-    this.port = port
     this.listener = null
     this.onListening = null
   }

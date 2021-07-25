@@ -5,18 +5,16 @@ You need to have NodeJS to run NBnode.
 
 ## Start the API server
 0. install required modules: `npm install`
-1. copy default config: `cd core && cp config_default.js config.js`
+1. copy default config: `cd core && cp default_config.js config.js`
 2. edit the config.js as needed
-3. init database once: `node resetDB.js`
-4. start core service: `node startCore.js &`
-5. start api server: `cd .. && node startAPI.js &`
-6. open browser and goto http://localhost:9000/api/?nid=1020.test to test NBdomain resolve service
-7. open browser and goto http://localhost:9000/web/md.1010.test to test NBdomain web service
-8. open browser and goto http://localhost:9000/ to view home page of this node.
+3. start core service: `node core/index.js`
+4. open browser and goto http://localhost:9000/api/?nid=1020.test to test NBdomain resolve service
+5. open browser and goto http://localhost:9000/web/md.1010.test to test NBdomain web service
+6. open browser and goto http://localhost:9000/ to view home page of this node.
 
 ## Start the web server
 >> You don't need to start the web server if you don't want to provide public service.
-0. stop the startAPI.js if you have started it
+0. stop the index.js if you have started it
 ```
 # Allow non-root node to use ports 80 (HTTP) and 443 (HTTPS) Linux
 sudo setcap 'cap_net_bind_service=+ep' $(which node)

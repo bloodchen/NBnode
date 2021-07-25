@@ -9,11 +9,10 @@
 // Globals
 // ------------------------------------------------------------------------------------------------
 
-const API = 'planaria'
-const MATTERCLOUD_KEY = null
-const PLANARIA_TOKEN = null
+const API = 'planaria'  //'mattercloud', 'planaria','bitcoin-node'
+const MATTERCLOUD_KEY = ""
+const PLANARIA_TOKEN = "" // get from https://token.planaria.network/
 const NETWORK = 'main'
-const PORT = 0
 const TXDB = 'txs.db'
 const DMDB = 'domains.db'
 const WORKERS = 4
@@ -84,7 +83,6 @@ module.exports = {
   NETWORK,
   TXDB,
   DMDB,
-  PORT,
   WORKERS,
   FETCH_LIMIT,
   START_HEIGHT,

@@ -33,10 +33,10 @@ class Database {
   open() {
     if (this.db) throw new Error('Database already open')
     if(!fs.existsSync(this.path)){
-      fs.copyFileSync(this.path+".tpl.db",this.path);
+      fs.copyFileSync(__dirname+"/db/txs.db.tpl.db",this.path);
     }
     if(!fs.existsSync(this.dmpath)){
-      fs.copyFileSync(this.dmpath+".tpl.db",this.dmpath);
+      fs.copyFileSync(__dirname+"/db/domains.db.tpl.db",this.dmpath);
     }
     this.db = new Sqlite3Database(this.path)
     
@@ -218,7 +218,7 @@ class Database {
   // resolver
   // --------------------------------------------------------------------------
   getAllPaytx(type){
-    return this.db.prepare('SELECT * from paytx where type = ?').run(type);
+    return this.db.prepare('SELECT * from paytx where type = ?').all(type);
   }
   deletePaytx(domain,type){
     this.db.prepare('DELETE from paytx where domain = ? AND type = ?').run(domain,type);

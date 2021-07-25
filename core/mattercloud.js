@@ -13,9 +13,11 @@ const { default: ReconnectingEventSource } = require('reconnecting-eventsource')
 // Globals
 // ------------------------------------------------------------------------------------------------
 
-const NB_FILTER1 = '006a223150754d655a73776a73414d374446484d53646d4147665138734776456374694635' //1PuMeZswjsAM7DFHMSdmAGfQ8sGvEctiF5
-const NB_FILTER2 = '006a223134504d4c31587a5a7173354a764a43477932414a325a41517a5445626e4336735a' //14PML1XzZqs5JvJCGy2AJ2ZAQzTEbnC6sZ
-const NB_FILTER3 = '006a036e6264' //nbd
+const NB_FILTERS = [
+  {filter:"006a223150754d655a73776a73414d374446484d53646d4147665138734776456374694635",start:613645,end:999999999}, //1PuMeZswjsAM7DFHMSdmAGfQ8sGvEctiF5
+  {filter:"006a223134504d4c31587a5a7173354a764a43477932414a325a41517a5445626e4336735a",start:658653,end:999999999}, //14PML1XzZqs5JvJCGy2AJ2ZAQzTEbnC6sZ
+  {filter:"006a036e6264",start:696101,end:999999999}  //nbd
+]
 
 // ------------------------------------------------------------------------------------------------
 // MatterCloud
@@ -66,20 +68,23 @@ class MatterCloud {
     }
 
     try {
-      const FILTERS = [NB_FILTER1,NB_FILTER2,NB_FILTER3]
       let txhexs=[], txids=[],time=0
-      FILTERS.forEach(async FILTER=>{
-        response = await axios.get(`https://bfs.mattercloud.io/block/${hash}/tx/filter/${FILTER}${this.suffix}`)
-        console.log(response.data);
+      for(let i=0;i<NB_FILTERS.length;i++){
+        const FILTER = NB_FILTERS[i]
+        if(height<FILTER.start||height>FILTER.end)continue
+        const url = `https://bfs.mattercloud.io/block/${hash}/tx/filter/${FILTER.filter}${this.suffix}`
+        response = await axios.get(url)
+        //console.log(response.data);
         const prevHash = response.data.header.prevHash
         if (currHash && prevHash !== currHash) return { reorg: true }
 
         const txhexs1 = response.data.tx.map(tx => tx.raw)
         const txids1 = txhexs1.map(hex => new bsv.Transaction(hex).hash)
-        txhexs.concat(txhexs1)
-        txids.concat(txids1)
+        txhexs = txhexs.concat(txhexs1)
+        txids = txids.concat(txids1)
         time = response.data.header.time
-      })
+      }
+     
       return { height, hash, time, txids, txhexs }
     } catch (e) {
       if (e.response && e.response.status === 404) return undefined
