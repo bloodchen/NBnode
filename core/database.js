@@ -306,6 +306,7 @@ class Database {
   }
   readKey(keyName) {
     try {
+      console.log("read:",keyName);
       return JSON.parse(this.readKeyStmt.get(keyName).value);
     } catch (e) {
       this.logger.error(e)

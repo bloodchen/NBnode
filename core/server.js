@@ -93,12 +93,9 @@ class Server {
     const app = express()
 
     if (this.logger) app.use(morgan('tiny'))
-
     
-
     app.get('/nblink/add/', this.addNBlink.bind(this))
     app.get('/nodeInfo', (req, res, next)=>{
-      try {
         if (!isAPICall(req.get("host"))) {
           next();
           return;
@@ -107,8 +104,8 @@ class Server {
         info.endpoints = Object.keys(CONFIG.proxy_map);
         info.version = verNode;
         res.json(info);
-      } catch (e) { next(e) }
-    })
+      }
+    )
     app.get('/', this.getIndex.bind(this))
     app.get('/welcome.md', this.getWelcome.bind(this))
     app.get('/*', this.getAll.bind(this))
