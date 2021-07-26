@@ -95,11 +95,11 @@ class Server {
     if (this.logger) app.use(morgan('tiny'))
 
     
-
+    app.use(express.static(__dirname+'/public'))
     app.get('/nblink/add/', this.addNBlink.bind(this))
     app.get('/nodeInfo', this.getNodeInfo.bind(this))
-    app.get('/', this.getIndex.bind(this))
-    app.get('/welcome.md', this.getWelcome.bind(this))
+    //app.get('/', this.getIndex.bind(this))
+    //app.get('/welcome.md', this.getWelcome.bind(this))
     app.get('/*', this.getAll.bind(this))
 
     app.post("/*", async (req, res, next) => {
@@ -112,7 +112,8 @@ class Server {
     }, 60 * 1000);
 
     this.startProxyServer(app);
-    this.startWebServer();
+    if(CONFIG.node_info.domain)
+        this.startWebServer();
   }
   async startWebServer() {
     //Start HTTPS server

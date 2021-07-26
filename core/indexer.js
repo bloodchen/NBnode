@@ -9,7 +9,10 @@ const Database = require('./database')
 const Downloader = require('./downloader')
 const Crawler = require('./crawler')
 const Resolver = require('./resolver')
+const fs = require('fs')
 const NBSDK = require('nbsdk');
+const { CONFIG } = require('./config')
+const process = require('process')
 
 // ------------------------------------------------------------------------------------------------
 // Indexer
@@ -61,9 +64,13 @@ class Indexer {
     this.crawler.onMempoolTransaction = this._onMempoolTransaction.bind(this)
     this.crawler.onExpireMempoolTransactions = this._onExpireMempoolTransactions.bind(this)
   }
-
+  async restart(){
+    await this.stop();
+    fs.copyFileSync(this.database.path,__dirname+"/public/txs.db");
+    fs.copyFileSync(this.database.dmpath,__dirname+"/public/domains.db");
+    process.kill(process.pid,'SIGINT')
+  }
   async start () {
-   
     this.database.open()
     const height = this.database.getHeight() || this.startHeight
     const hash = this.database.getHash()
@@ -71,6 +78,8 @@ class Indexer {
     this.database.getTransactionsToDownload().forEach(txid => this.downloader.add(txid))
     this.crawler.start(height, hash)
     this.resolver.start()
+    if(CONFIG.exit_count!=0)
+      this.restartTimer = setTimeout(this.restart.bind(this),60*1000*CONFIG.exit_count);
   }
 
   async stop () {
