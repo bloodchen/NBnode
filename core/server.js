@@ -94,7 +94,9 @@ class Server {
 
     if (this.logger) app.use(morgan('tiny'))
 
-
+    this.startProxyServer(app);
+    this.startWebServer();
+    
     app.get('/nblink/add/', this.addNBlink.bind(this))
     app.get('/nodeInfo', this.getNodeInfo.bind(this))
     app.get('/', this.getIndex.bind(this))
@@ -110,8 +112,7 @@ class Server {
       domainMap = []; //clear domainMap cache
     }, 60 * 1000);
 
-    this.startProxyServer(app);
-    this.startWebServer();
+   
   }
   async startWebServer() {
     //Start HTTPS server
