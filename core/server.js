@@ -245,6 +245,7 @@ class Server {
         next();
         return;
       }
+      console.log("sending:" , __dirname + "/index.html")
       res.sendFile(__dirname + "/index.html");
     } catch (e) { next(e) }
   }
@@ -263,11 +264,7 @@ class Server {
     try {
       const host = req.get("host");
       console.log(host);
-      if (
-        host.indexOf("localhost") != -1 ||
-        host.indexOf("127.0.0.1") != -1 ||
-        host.indexOf(CONFIG.node_info.domain) != -1
-      ) {
+      if (isAPICall(host)) {
         console.log("got local call, ignore...");
         next();
         return;
