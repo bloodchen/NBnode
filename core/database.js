@@ -306,8 +306,9 @@ class Database {
   }
   readKey(keyName) {
     try {
-      console.log("read:",keyName);
-      return JSON.parse(this.readKeyStmt.get(keyName).value);
+      const ret = this.readKeyStmt.get(keyName);
+      if(ret)
+        return JSON.parse(ret.value);
     } catch (e) {
       this.logger.error(e)
     }
