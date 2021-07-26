@@ -14,7 +14,9 @@ const CMD = {
     "SELL": "sell",
     "BUY": "buy",
     "TRANSFER": "transfer",
-    "NOP": "nop"
+    "NOP": "nop",
+    "PAY_REGISTER":"pay_register",
+    "PAY_BUY":"pay_buy",
   }
 
 class DomainTool {
