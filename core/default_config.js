@@ -39,8 +39,7 @@ const CONFIG = {
   "node_port": 9000,
   "proxy_map": {
     "/api/": "api",
-    "/web/": "web",
-    "/admin/": "admin",
+    "/web/": "web"
   },
   "nidcheck_endpoint": "https://nb-namecheck.glitch.me/v1/check/",
   "admin": {
