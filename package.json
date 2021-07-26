@@ -22,11 +22,12 @@
     "morgan": "^1.10.0",
     "event-stream": "^4.0.1",
     "eventsource": "^1.1.0",
-    "nblib": "^1.0.86",
     "nbsdk": "^1.0.15",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
-    "reconnecting-eventsource": "^1.1.0",
+    "reconnecting-eventsource": "^1.1.0"
+  },
+  "optionalDependencies": {
     "zeromq": "^5.2.8"
   }
 }
