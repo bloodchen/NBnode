@@ -94,11 +94,21 @@ class Server {
 
     if (this.logger) app.use(morgan('tiny'))
 
-    this.startProxyServer(app);
-    this.startWebServer();
     
+
     app.get('/nblink/add/', this.addNBlink.bind(this))
-    app.get('/nodeInfo', this.getNodeInfo.bind(this))
+    app.get('/nodeInfo', (req, res, next)=>{
+      try {
+        if (!isAPICall(req.get("host"))) {
+          next();
+          return;
+        }
+        let info = CONFIG.node_info;
+        info.endpoints = Object.keys(CONFIG.proxy_map);
+        info.version = verNode;
+        res.json(info);
+      } catch (e) { next(e) }
+    })
     app.get('/', this.getIndex.bind(this))
     app.get('/welcome.md', this.getWelcome.bind(this))
     app.get('/*', this.getAll.bind(this))
@@ -112,7 +122,8 @@ class Server {
       domainMap = []; //clear domainMap cache
     }, 60 * 1000);
 
-   
+    this.startProxyServer(app);
+    this.startWebServer();
   }
   async startWebServer() {
     //Start HTTPS server
@@ -224,19 +235,6 @@ class Server {
         });
       }
       return;
-    } catch (e) { next(e) }
-  }
-
-  async getNodeInfo(req, res, next) {
-    try {
-      if (!isAPICall(req.get("host"))) {
-        next();
-        return;
-      }
-      let info = CONFIG.node_info;
-      info.endpoints = Object.keys(CONFIG.proxy_map);
-      info.version = verNode;
-      res.json(info);
     } catch (e) { next(e) }
   }
 
