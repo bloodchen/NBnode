@@ -95,11 +95,13 @@ class Server {
     if (this.logger) app.use(morgan('tiny'))
 
     
-    app.use(express.static(__dirname+'/public'))
+    app.use('/',express.static(__dirname+'/public'))
+    app.use('/welcome.md',express.static(__dirname+'/public'))
+    app.use('/text.css',express.static(__dirname+'/public'))
+    app.use('/files/',express.static(__dirname+'/public'))
+    
     app.get('/nblink/add/', this.addNBlink.bind(this))
     app.get('/nodeInfo', this.getNodeInfo.bind(this))
-    //app.get('/', this.getIndex.bind(this))
-    //app.get('/welcome.md', this.getWelcome.bind(this))
     app.get('/*', this.getAll.bind(this))
 
     app.post("/*", async (req, res, next) => {
@@ -238,27 +240,6 @@ class Server {
       info.endpoints = Object.keys(CONFIG.proxy_map);
       info.version = verNode;
       res.json(info);
-    } catch (e) { next(e) }
-  }
-
-  async getIndex(req, res, next) {
-    try {
-      if (!isAPICall(req.get("host"))) {
-        next();
-        return;
-      }
-      console.log("sending:" , __dirname + "/index.html")
-      res.sendFile(__dirname + "/index.html");
-    } catch (e) { next(e) }
-  }
-
-  async getWelcome(req, res, next) {
-    try {
-      if (!isAPICall(req.get("host"))) {
-        next();
-        return;
-      }
-      res.sendFile(__dirname + "/welcome.md");
     } catch (e) { next(e) }
   }
 
