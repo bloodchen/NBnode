@@ -95,9 +95,13 @@ class Server {
     if (this.logger) app.use(morgan('tiny'))
 
     
-    app.use('/',express.static(__dirname+'/public'))
-    app.use('/welcome.md',express.static(__dirname+'/public'))
-  //  app.use('/text.css',express.static(__dirname+'/public'))
+    app.get("/", (req, res, next) => {
+      if (!isAPICall(req.get("host"))) {
+        next();
+        return;
+      }
+      res.sendFile(__dirname + "/public/index.html");
+    });
     app.use('/files/',express.static(__dirname+'/public'))
 
     app.get('/nblink/add/', this.addNBlink.bind(this))
