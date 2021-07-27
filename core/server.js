@@ -95,7 +95,7 @@ class Server {
     if (this.logger) app.use(morgan('tiny'))
 
     
-  //  app.use('/',express.static(__dirname+'/public'))
+    app.use('/index.html',express.static(__dirname+'/public'))
   //  app.use('/welcome.md',express.static(__dirname+'/public'))
   //  app.use('/text.css',express.static(__dirname+'/public'))
   //  app.use('/files/',express.static(__dirname+'/public'))
