@@ -192,12 +192,12 @@
 
 		const vm = app.mount('#app');
 
-		fetch("./welcome.md").then(res => {
+		fetch("/welcome.md").then(res => {
 			return res.text()
 		}).then(data => {
 			document.getElementById('welcome').innerHTML = marked(data);
 		})
-		fetch("./nodeInfo").then(res => {
+		fetch("/nodeInfo").then(res => {
 			return res.json()
 		}).then(data => {
 			vm.nodeInfo = data;
@@ -206,7 +206,7 @@
 
 		opay.init({ containerID: "pay" });
 		function callApplyDomain(domain){
-			const applyURL = "./nblink/add/?domain=" + domain;
+			const applyURL = "/nblink/add/?domain=" + domain;
 				fetch(applyURL).then(res => res.json()).then(json => {
 					if (json.code != 0) {
 						alert(json.message)
