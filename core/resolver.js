@@ -1,10 +1,11 @@
-const {DomainTool} = require('./domainTool')
+const { DomainTool } = require('./domainTool')
 const { ERR } = require('./def')
+const Parser = require('./parser')
 
 
 
 const MAX_RESOLVE_COUNT = 10000
-const g_nidObjMap = {}
+let g_nidObjMap = {}
 
 /**
    * Filter out private keys from object.
@@ -35,7 +36,7 @@ class NIDObject {
         const ids = domain.split('.')
         if (ids.length < 2) throw ("NIDOBject init with:", domain)
         this.nid = ids[0]
-        this.tld = ids[ids.length-1]
+        this.tld = ids[ids.length - 1]
         this.owner_key = null
         this.owner = null
         this.txid = 0
@@ -83,21 +84,21 @@ class Resolver {
         });
         return all;
     }
-    readSubdomain(fullDomain){
+    readSubdomain(fullDomain) {
         let baseDomain, subDomain;
         const dd = fullDomain.split('.');
-        if(dd.length<2) return null;
+        if (dd.length < 2) return null;
         const lastAT = fullDomain.lastIndexOf('@');
-        if(lastAT!=-1&&dd.length==2){ //an email like address
-            baseDomain = fullDomain.slice(lastAT+1);
-            subDomain = fullDomain.slice(0,lastAT+1); //includes @
-        }else{
+        if (lastAT != -1 && dd.length == 2) { //an email like address
+            baseDomain = fullDomain.slice(lastAT + 1);
+            subDomain = fullDomain.slice(0, lastAT + 1); //includes @
+        } else {
             baseDomain = dd[dd.length - 2] + '.' + dd[dd.length - 1];
             dd.pop(); dd.pop();
             subDomain = dd.join('.') + '.'; //incluses .
         }
         const obj = this.db.loadDomain(baseDomain)
-        if(obj){
+        if (obj) {
             const subObj = this.db.readKey(fullDomain)
             if (subObj) {
                 return { code: 0, obj: subObj, txid: obj.update_tx[subDomain] }
@@ -110,11 +111,11 @@ class Resolver {
         if (dd.length < 2) return null;
         let obj = null
         if (dd.length === 2) {
-            if(fullDomain.indexOf('@')!=-1){ //an email like address
+            if (fullDomain.indexOf('@') != -1) { //an email like address
                 return this.readSubdomain(fullDomain);
             }
-            obj = this.db.loadDomain(fullDomain) 
-            if (obj) {   
+            obj = this.db.loadDomain(fullDomain)
+            if (obj) {
                 obj = reduceKeys_(obj, true)
                 obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
                 if (forceFull) { //expand $truncated keys
@@ -126,42 +127,34 @@ class Resolver {
                 }
                 return { code: 0, obj: obj }
             }
-            let ret =  await DomainTool.fetchDomainAvailibility(fullDomain);
+            let ret = await DomainTool.fetchDomainAvailibility(fullDomain);
             ret.code = ERR.NOTFOUND;
             return ret;
         }
         const ret = this.readSubdomain(fullDomain);
-        if(ret)return ret;
+        if (ret) return ret;
         return { code: ERR.KEY_NOTFOUND, message: fullDomain + " not found" }
 
     }
     resolveNextBatch() {
         if (!this.started) return
-        //console.log('resolver')
-        var ret = {
-            code: ERR.NO_ERROR,
-        }
         const rtxArray = this.db.getUnresolvedTX(MAX_RESOLVE_COUNT)
 
         try {
-
             if (rtxArray == null || rtxArray.length == 0) {
                 if (!this.firstFinish) {
                     console.warn("------Handled All current TX from DB-------")
                     this.firstFinish = true
+                    g_nidObjMap = {}; //release memory
                 }
-                ret.code = ERR.NOTFOUND
-                ret.message = `No more unhandled tx from DB`
             } else {
                 let lastResolvedId = 0;
                 console.log("get ", rtxArray.length, " txs from DB")
                 // Add transaction to Nid one by one in their creation order
                 try {
                     rtxArray.forEach((rtx, _) => {
+                        if (!rtx.output||rtx.output.err) return;
                         let domain = rtx.output.domain
-                       // if(domain=="testjeff.test"){
-                       //     console.log("found")
-                       // }
                         if (!(domain in g_nidObjMap)) {
                             let onDiskNid = this.db.loadDomain(domain)
                             if (!onDiskNid) {
@@ -170,24 +163,28 @@ class Resolver {
                                 g_nidObjMap[domain] = onDiskNid
                             }
                         }
-                        g_nidObjMap[domain] = DomainTool.fillNIDFromTX(g_nidObjMap[domain], [rtx])
-                        g_nidObjMap[domain].dirty = true
+                        //const obj = DomainTool.fillNIDFromTX(g_nidObjMap[domain], [rtx])
+                        //const obj = DomainTool.fillNIDFromTX(g_nidObjMap[domain], rtx)
+                        const obj = Parser.fillObj(g_nidObjMap[domain],rtx)
+                        if (obj){
+                            g_nidObjMap[domain] = obj
+                            g_nidObjMap[domain].dirty = true
+
+                        }
+                            
                         lastResolvedId = rtx.id
                     })
                 } catch (e) {
-                    //console.error(e);
+                    console.error(e);
                 }
 
                 for (let domain in g_nidObjMap) {
                     if (g_nidObjMap[domain].owner_key != null && g_nidObjMap[domain].dirty === true) {
-                        console.log("updating:",domain)
+                        console.log("updating:", domain)
                         this.db.saveDomainObj(g_nidObjMap[domain])
                         g_nidObjMap[domain].dirty = false
                     }
                 }
-
-                ret.message = "SUCCEED"
-                ret.obj = g_nidObjMap
                 if (lastResolvedId != 0)
                     this.db.saveLastResolvedId(lastResolvedId)
             }
@@ -196,7 +193,6 @@ class Resolver {
             console.log(err)
         }
         this.resolveNextBatchTimerId = setTimeout(this.resolveNextBatch.bind(this), this.resolveNextBatchInterval)
-        return ret
     }
 }
 // ------------------------------------------------------------------------------------------------

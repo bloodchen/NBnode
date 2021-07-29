@@ -7,7 +7,7 @@ var express = require('express');
 var bodyParser = require("body-parser");
 var cors = require('cors');
 const { ERR } = require('../../def')
-const Util = require('../../util.js');
+const {Util} = require('../../util.js');
 var app = express();
 
 app.use(cors());

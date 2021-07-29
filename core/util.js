@@ -7,7 +7,47 @@ const bsv = require('bsv');
 const Minercraft = require('minercraft');
 const { CONFIG } = require('./config')
 const SUB_PROTOCOL_MAP = CONFIG.tld_config
+
+class CMD_BASE{
+    static parseTX(rtx){
+        let output = {}
+        output.protocol = rtx.out[0].s2;
+        output.nid = rtx.out[0].s3.toLowerCase();
+        output.domain = output.nid + "." + Util.getTLDFromRegisterProtocol(output.protocol)[0];
+        if(output.nid.indexOf('.')!=-1||output.nid.indexOf('@')!=-1)
+            output.err = "Invalid NID"
+        return output;
+    }
+};
+
 class Util {
+    /**
+     * Reset NidObject to initial state.
+     * @param {NIDObject!} nidObj 
+     * @param {!string} newOwner 
+     * @param {!Number} newStatus 
+     */
+     static resetNid(nidObj, newOwner, newOnwerTxid, newStatus, clearData = true) {
+        nidObj.owner_key = newOwner;
+        if (newOwner != null) {
+            nidObj.owner = Util.getAddressFromPublicKey(nidObj.owner_key);
+            nidObj.txid = newOnwerTxid;
+        } else {
+            nidObj.owner = null;
+            nidObj.txid = 0;
+        }
+        nidObj.status = newStatus;
+        if (clearData) {
+            nidObj.admins = [];
+            nidObj.keys = {};
+            nidObj.users = {};
+            nidObj.update_tx = {};
+            nidObj.admin_update_tx = 0;
+        }
+        nidObj.tf_update_tx = 0
+        nidObj.sell_info = null;
+        return nidObj;
+    }
     static async sendRawtx(rawtx) {
         const miner = new Minercraft({
             url: "https://merchantapi.matterpool.io",
@@ -145,4 +185,4 @@ class Util {
     }
 };
 
-module.exports = Util
+module.exports = { Util,CMD_BASE }

@@ -1,58 +1,54 @@
-const Util = require('./util')
+const {Util} = require('./util')
 const { CONFIG } = require('./config')
+const { CMD,DEF } = require('./def')
+const Parser = require('./parser')
 var axios = require("axios");
 
-const STATUS_EXPIRED = 0x00;
-const STATUS_VALID = 0x01;
-const STATUS_TRANSFERING = 0x11;  // (code:17)
 
-const CMD = {
-    "REGISTER": "register",
-    "KEY": "key",
-    "USER": "user",
-    "ADMIN": "admin",
-    "SELL": "sell",
-    "BUY": "buy",
-    "TRANSFER": "transfer",
-    "NOP": "nop",
-    "PAY_REGISTER":"pay_register",
-    "PAY_BUY":"pay_buy",
-  }
+
+
 
 class DomainTool {
     /**
    * Fetch NidOject from remote endpoint.
    * @param {!NidObject} domain 
    */
-  static async fetchDomainAvailibility(domain) {
-    try {
-      let url = `${CONFIG.nidcheck_endpoint}${domain}`;
-      console.log(`Sending request to URL ${url}`);
-      let res = await axios.get(url, { timeout: 10000 });
-      return res.data;
-    } catch (error) {
-      console.log(error);
-      return { code: -1000, message: error };
+    static async fetchDomainAvailibility(domain) {
+        try {
+            let url = `${CONFIG.nidcheck_endpoint}${domain}`;
+            console.log(`Sending request to URL ${url}`);
+            let res = await axios.get(url, { timeout: 10000 });
+            return res.data;
+        } catch (error) {
+            console.log(error);
+            return { code: -1000, message: error };
+        }
     }
-  }
-    static fillNIDFromTX(nidObj, rtxArray) {
+    static fillNIDFromTX(nidObj, rx){
+        
+        return Parser.fillObj(nidObj,rx);
+        
+    }
+    static fillNIDFromTX1(nidObj, rtxArray) {
 
         if (rtxArray == null) {
             return null;
         }
+        try{
         let rxArray = [];
         let firstRegRtx = null;
         if (nidObj.owner_key == null) {
-            nidObj = DomainTool.resetNid(nidObj, null, null, STATUS_EXPIRED);
+            nidObj = DomainTool.resetNid(nidObj, null, null, DEF.STATUS_EXPIRED);
             firstRegRtx = DomainTool.findFirstRegister_(rtxArray);
             if (firstRegRtx != null) {
-                nidObj.nid = firstRegRtx.output.nid;
+               /* nidObj.nid = firstRegRtx.output.nid;
                 nidObj.owner_key = firstRegRtx.output.owner_key;
                 nidObj.txid = firstRegRtx.txid;
-                nidObj.status = STATUS_VALID;
+                nidObj.status = DEF.STATUS_VALID;
                 nidObj.domain = firstRegRtx.output.domain;
                 nidObj.lastUpdateheight = firstRegRtx.height;
-                rxArray.push(firstRegRtx);
+                rxArray.push(firstRegRtx);*/
+                nidObj = CMD_REGISTER.fillObj(nidObj,firstRegRtx)
             } else {
                 return nidObj;
             }
@@ -75,26 +71,26 @@ class DomainTool {
                 // Only register when domain expired case or accept a transfer.
 
                 // Register after NID expired.
-                if ((rx.command == CMD.REGISTER) && nidObj.status == STATUS_EXPIRED) {
-                    nidObj = DomainTool.resetNid(nidObj, rxOwner, rx.txid, STATUS_VALID);
+                if ((rx.command == CMD.REGISTER) && nidObj.status == DEF.STATUS_EXPIRED) {
+                    nidObj = DomainTool.resetNid(nidObj, rxOwner, rx.txid, DEF.STATUS_VALID);
                     rxArray.push(rx);
                 }
 
                 // Accept NID transfer.
-                if ((rx.command == CMD.BUY) && nidObj.status == STATUS_TRANSFERING) {
-                    /**
-                     *  Validation for domain expiration at accept time.
-                     */
-                    if (DomainTool.validNIDTransfer_(nidObj, rx)) {
+                if ((rx.command == CMD.BUY) && nidObj.status == DEF.STATUS_TRANSFERING) {
+                    
+                    /* if (DomainTool.validNIDTransfer_(nidObj, rx)) {
                         rxArray.push(rx);
                         let clearData = nidObj.sell_info.clear_data;
                         nidObj = DomainTool.resetNid(nidObj, rxOwner, rx.txid, STATUS_VALID, clearData);
-                    }
+                    }*/
+                    nidObj = CMD_BUY.fillObj(nidObj,rx)
                 }
 
                 // Set Key.
                 if (rx.command == CMD.KEY || rx.command == CMD.USER) {
-                    if (nidObj.status != STATUS_EXPIRED) {
+                    CMD_KEYUSER.fillObj(nidObj,rx);
+                    /*if (nidObj.status != DEF.STATUS_EXPIRED) {
                         let authorized = false;
                         for (var name in nidObj.admins) {
                             var adminAddress = nidObj.admins[name];
@@ -106,7 +102,7 @@ class DomainTool {
                             rxArray.push(rx);
                             nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
                         }
-                    }
+                    }*/
                 }
 
                 // NOP.
@@ -126,51 +122,60 @@ class DomainTool {
 
             // Force update last_txid as long as tx is from owner (even it's not valid).
             nidObj.last_txid = rx.txid;
-
+            if(rx.output.err) 
+                return;
+            if(rx.command == CMD.NFT_CREATE){
+                CMD_NFT_Create.fillObj(nidObj,rx);
+            }
             // Set Metadata or Admin.
-            if (rx.command == CMD.ADMIN || rx.command == CMD.KEY || rx.command == CMD.USER) {
-                if (nidObj.status != STATUS_EXPIRED) {
+            if (rx.command == CMD.ADMIN) {
+                /*if (nidObj.status != DEF.STATUS_EXPIRED) {
                     rxArray.push(rx);
                     nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
-                }
+                }*/
+                nidObj = CMD_ADMIN.fillObj(nidObj,rx);
+            }
+            if(rx.command == CMD.KEY || rx.command == CMD.USER){
+                nidObj = CMD_KEYUSER.fillObj(nidObj,rx);
             }
 
             // NOP.
             if (rx.command == CMD.NOP) {
                 // Do nothing, just update last_txid;
-                rxArray.push(rx);
+                //rxArray.push(rx);
+                nidObj = CMD_NOP.fillObj(nidObj,rx);
             }
 
             // Accept NID transfer.
-            if ((rx.command == CMD.BUY) && nidObj.status == STATUS_TRANSFERING) {
-                /**
-                 *  Validation for domain expiration at accept time.
-                 */
-                if (DomainTool.validNIDTransfer_(nidObj, rx)) {
+            if ((rx.command == CMD.BUY) && nidObj.status == DEF.STATUS_TRANSFERING) {
+                /*if (DomainTool.validNIDTransfer_(nidObj, rx)) {
                     rxArray.push(rx);
                     let clearData = nidObj.sell_info.clear_data;
                     nidObj = DomainTool.resetNid(nidObj, rxOwner, rx.txid, STATUS_VALID, clearData);
-                }
+                } */
+                nidObj = CMD_BUY.fillObj(nidObj,rx)
             }
 
             // Transfer NID.
             if (rx.command == CMD.SELL) {
-                if (nidObj.status != STATUS_EXPIRED) {
-                    if (nidObj.status == STATUS_VALID) {
+                /*if (nidObj.status != DEF.STATUS_EXPIRED) {
+                    if (nidObj.status == DEF.STATUS_VALID) {
                         // First valid transfer cmd.
-                        nidObj.status = STATUS_TRANSFERING;
+                        nidObj.status = DEF.STATUS_TRANSFERING;
                     } else {
                         // Subsequent valid transfer cmds.
                         DomainTool.removeRtxByHash(rxArray, nidObj.sell_info.sell_txid);
                     }
                     rxArray.push(rx);
                     nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
-                }
+                }*/
+                nidObj = CMD_SELL.fillObj(nidObj,rx)
             }
 
             if (rx.command == CMD.TRANSFER) {
-                nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
-                rxArray.push(rx);
+                //nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
+                //rxArray.push(rx);
+                nidObj = CMD_TRANSER.fillObj(nidObj,rx)
             }
 
         });
@@ -182,6 +187,10 @@ class DomainTool {
         if (nidObj.owner_key != null) {
             nidObj.owner = Util.getAddressFromPublicKey(nidObj.owner_key);
         }
+    }catch(e){
+        console.error(e)
+        return null
+    }
         // Return deep copy.
         return JSON.parse(JSON.stringify(nidObj));
     }
@@ -213,14 +222,14 @@ class DomainTool {
         nidObj.sell_info = null;
         return nidObj;
     }
-/**
-   * Check if a pair of trasfer/accept RTX are valid.
-   * @param {ReadableTranscation} acceptRx The accept RTX.
-   * @return {Boolean} True if the transfer/accept RTX pair are valid.
-   */
- static validNIDTransfer_(nidObj, acceptRx) {
-    return true;
-  }
+    /**
+       * Check if a pair of trasfer/accept RTX are valid.
+       * @param {ReadableTranscation} acceptRx The accept RTX.
+       * @return {Boolean} True if the transfer/accept RTX pair are valid.
+       */
+    static validNIDTransfer_(nidObj, acceptRx) {
+        return true;
+    }
     /**
      * Update NidObject according to transaction.
      * @param {!NIDObject} nidObj 
@@ -237,9 +246,9 @@ class DomainTool {
                 for (const key in rtx.output.value) {
                     let lowerKey = key.toLowerCase();
                     nidObj.keys[lowerKey] = rtx.output.value[key];
-                    nidObj.update_tx[lowerKey+'.'] = rtx.txid;
+                    nidObj.update_tx[lowerKey + '.'] = rtx.txid;
                     if (rtx.output.tags) {
-                        nidObj.tag_map[lowerKey+'.'] = rtx.output.tags;
+                        nidObj.tag_map[lowerKey + '.'] = rtx.output.tags;
                     }
                 }
 
@@ -249,9 +258,9 @@ class DomainTool {
                 for (const key in rtx.output.value) {
                     let lowerKey = key.toLowerCase();
                     nidObj.users[lowerKey] = rtx.output.value[key];
-                    nidObj.update_tx[lowerKey+'@'] = rtx.txid;
+                    nidObj.update_tx[lowerKey + '@'] = rtx.txid;
                     if (rtx.output.tags) {
-                        nidObj.tag_map[lowerKey+'@'] = rtx.output.tags;
+                        nidObj.tag_map[lowerKey + '@'] = rtx.output.tags;
                     }
                 }
             }
@@ -309,6 +318,5 @@ class DomainTool {
 // ------------------------------------------------------------------------------------------------
 
 module.exports = {
-    DomainTool,
-    CMD
+    DomainTool
 }

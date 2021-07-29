@@ -343,9 +343,6 @@ class Database {
   saveDomainObj(obj) {
     try {
       this.transaction(() => {
-        if (obj.domain === "btcfund.b") {
-          console.log('found')
-        }
         this.saveKeys(obj);
         this.saveTags(obj);
         this.saveDomainObjStmt.run(obj.domain, obj.nid, obj.owner, obj.owner_key, obj.status, obj.last_txid, obj.lastUpdateBlockId, JSON.stringify(obj), obj.tld,

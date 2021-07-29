@@ -18,12 +18,14 @@ class RunConnectFetcher {
   async fetch(txid) {
     let response;
     //const response = await axios.get(`https://api.run.network/v1/${this.network}/tx/${txid}`)
+    let hex;
     try {
       response = await axios.get(`https://api.whatsonchain.com/v1/bsv/${this.network}/tx/${txid}/hex`)
+      hex = response.data
     }catch(e){
       response = await axios.get(`https://api.run.network/v1/${this.network}/tx/${txid}`)
+      hex = response.data.hex
     }
-    const hex = response.data
     if (!hex) {
       console.error("Download rawtx failed");
     }

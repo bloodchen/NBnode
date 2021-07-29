@@ -10,7 +10,7 @@ const Downloader = require('./downloader')
 const Crawler = require('./crawler')
 const Resolver = require('./resolver')
 const fs = require('fs')
-const NBSDK = require('nbsdk');
+const Parser = require('./parser')
 const { CONFIG } = require('./config')
 const process = require('process')
 
@@ -32,6 +32,8 @@ class Indexer {
     this.onFailToIndex = null
     this.onBlock = null
     this.onReorg = null
+
+    this.parser = new Parser;
 
     this.api = api
     this.network = network
@@ -284,13 +286,19 @@ class Indexer {
       }
       const height = this.database.getTransactionHeight(txid);
       const ts = this.database.getTransactionTime(txid);
-      const meta = NBSDK.parseRaw(rawtx,height,ts);
-      if(meta.code!=0){
-        this.logger.warn(txid,":"+meta.msg);
+      let meta = null
+      try{
+        meta = Parser.parseRaw(rawtx,height,ts);
+        if(meta.code!=0){
+          this.logger.warn(txid,":"+meta.msg);
+          this.database.deleteTransaction(txid);
+          return;
+        }
+      }catch(e){
+        console.error(e);
         this.database.deleteTransaction(txid);
         return;
       }
-
       this.database.setTransaction(txid, meta.obj)
       return
     
