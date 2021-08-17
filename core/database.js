@@ -5,6 +5,7 @@
  */
 const fs = require('fs')
 const Sqlite3Database = require('better-sqlite3')
+const Parser = require('./parser')
 //const { DEFAULT_TRUSTLIST } = require('./config')
 
 // ------------------------------------------------------------------------------------------------
@@ -32,14 +33,14 @@ class Database {
 
   open() {
     if (this.db) throw new Error('Database already open')
-    if(!fs.existsSync(this.path)){
-      fs.copyFileSync(__dirname+"/db/txs.db.tpl.db",this.path);
+    if (!fs.existsSync(this.path)) {
+      fs.copyFileSync(__dirname + "/db/txs.db.tpl.db", this.path);
     }
-    if(!fs.existsSync(this.dmpath)){
-      fs.copyFileSync(__dirname+"/db/domains.db.tpl.db",this.dmpath);
+    if (!fs.existsSync(this.dmpath)) {
+      fs.copyFileSync(__dirname + "/db/domains.db.tpl.db", this.dmpath);
     }
     this.db = new Sqlite3Database(this.path)
-    
+
 
     //--------------------------------------------------------//
     //  Transaction DB
@@ -55,28 +56,37 @@ class Database {
     // Synchronizes WAL at checkpoints
     this.db.pragma('synchronous = NORMAL')
 
-    this.addNewTransactionStmt = this.db.prepare('INSERT OR IGNORE INTO tx (txid, height, time,command,publicKey,inputAddress,output,"in",out) VALUES (?, null, ?, null, null, null, null, null,null)')
-    this.setTransactionBytesStmt = this.db.prepare('UPDATE tx SET command = ? ,publicKey= ? ,inputAddress = ? ,output = ? ,"in" = ? ,out = ? WHERE txid = ?')
+    //this.addNewTransactionStmt = this.db.prepare('INSERT OR IGNORE INTO tx (txid, height, time,command,publicKey,inputAddress,output,"in",out) VALUES (?, null, ?, null, null, null, null, null,null)')
+    //this.setTransactionBytesStmt = this.db.prepare('UPDATE tx SET command = ? ,publicKey= ? ,inputAddress = ? ,output = ? ,"in" = ? ,out = ? WHERE txid = ?')
+
+    this.addNewTransactionStmt = this.db.prepare('INSERT OR IGNORE INTO tx (txid, height, time, bytes) VALUES (?, null, ?, null)')
+    this.setTransactionBytesStmt = this.db.prepare('UPDATE tx SET bytes = ? WHERE txid = ?')
+    this.getTransactionHexStmt = this.db.prepare('SELECT LOWER(HEX(bytes)) AS hex FROM tx WHERE txid = ?')
+    this.getTransactionsToDownloadStmt = this.db.prepare(`SELECT txid FROM tx WHERE bytes IS NULL`)
+
     this.setTransactionTimeStmt = this.db.prepare('UPDATE tx SET time = ? WHERE txid = ?')
     this.setTransactionHeightStmt = this.db.prepare(`UPDATE tx SET height = ? WHERE txid = ? AND (height IS NULL OR height = ${HEIGHT_MEMPOOL})`)
     this.hasTransactionStmt = this.db.prepare('SELECT txid FROM tx WHERE txid = ?')
-    this.getTransactionCommandStmt = this.db.prepare('SELECT command FROM tx WHERE txid = ?')
+    //this.getTransactionCommandStmt = this.db.prepare('SELECT command FROM tx WHERE txid = ?')
     this.getTransactionTimeStmt = this.db.prepare('SELECT time FROM tx WHERE txid = ?')
     this.getTransactionHeightStmt = this.db.prepare('SELECT height FROM tx WHERE txid = ?')
     this.getTransactionAboveIdStmt = this.db.prepare(`SELECT * FROM tx WHERE id > ? ORDER BY id ASC LIMIT ?`)
-    this.getTransactionDownloadedStmt = this.db.prepare('SELECT output IS NOT NULL AS downloaded FROM tx WHERE txid = ?')
+    //this.getTransactionDownloadedStmt = this.db.prepare('SELECT output IS NOT NULL AS downloaded FROM tx WHERE txid = ?')
+    this.getTransactionDownloadedStmt = this.db.prepare('SELECT bytes IS NOT NULL AS downloaded FROM tx WHERE txid = ?')
     this.deleteTransactionStmt = this.db.prepare('DELETE FROM tx WHERE txid = ?')
     this.unconfirmTransactionStmt = this.db.prepare(`UPDATE tx SET height = ${HEIGHT_MEMPOOL} WHERE txid = ?`)
     this.getTransactionsAboveHeightStmt = this.db.prepare('SELECT txid FROM tx WHERE height > ?')
     this.getMempoolTransactionsBeforeTimeStmt = this.db.prepare(`SELECT txid FROM tx WHERE height = ${HEIGHT_MEMPOOL} AND time < ?`)
-    this.getTransactionsToDownloadStmt = this.db.prepare(`SELECT txid FROM tx WHERE output IS NULL`)
-    this.getTransactionsDownloadedCountStmt = this.db.prepare('SELECT COUNT(*) AS count FROM tx WHERE output IS NOT NULL')
+    //this.getTransactionsToDownloadStmt = this.db.prepare(`SELECT txid FROM tx WHERE output IS NULL`)
+    this.getTransactionsToDownloadStmt = this.db.prepare(`SELECT txid FROM tx WHERE bytes IS NULL`)
+    //this.getTransactionsDownloadedCountStmt = this.db.prepare('SELECT COUNT(*) AS count FROM tx WHERE output IS NOT NULL')
+    this.getTransactionsDownloadedCountStmt = this.db.prepare('SELECT COUNT(*) AS count FROM tx WHERE bytes IS NOT NULL')
     this.getHeightStmt = this.db.prepare('SELECT height FROM config WHERE role = \'tip\'')
     this.getHashStmt = this.db.prepare('SELECT hash FROM config WHERE role = \'tip\'')
     this.setHeightAndHashStmt = this.db.prepare('UPDATE config SET height = ?, hash = ? WHERE role = \'tip\'')
     this.getPayTxStmt = this.db.prepare('SELECT * from paytx where domain = ? AND type = ?')
     this.setPayTxStmt = this.db.prepare('INSERT INTO paytx (domain,payment_txid, tld, protocol, publicKey, raw_tx, ts, type) VALUES (?,?,?,?,?,?,?,?)')
-    
+
     //--------------------------------------------------------//
     //  Domains DB
     //-------------------------------------------------------//
@@ -113,6 +123,19 @@ class Database {
     this.setLastResolvedIdStmt = this.dmdb.prepare('UPDATE config SET value = ? WHERE key = \'lastResolvedId\'')
     this.getDomainStmt = this.dmdb.prepare('SELECT * from nidObj where domain = ?')
     this.queryDomainsStmt = this.dmdb.prepare('SELECT * FROM nidobj WHERE owner = ? ')
+
+    //-------------------------------NFT-------------------------------------------
+    this.getNFTStmt = this.dmdb.prepare('SELECT * from nfts where symbol=?')
+    const addNFTsql = `
+    INSERT INTO "nfts" 
+                (symbol,attributes,data,log) 
+                VALUES ( ?,?,?,'')
+                ON CONFLICT( symbol ) DO UPDATE
+                SET attributes=?,data=?`
+    this.addNFTStmt = this.dmdb.prepare(addNFTsql)
+    this.deleteNFTStmt = this.dmdb.prepare("DELETE FROM nfts where symbol = ?")
+    this.NFTappendLogStmt = this.dmdb.prepare("UPDATE nfts SET log = log || ?  where symbol = ?")
+    this.NFTgetLogStmt = this.dmdb.prepare("SELECT log from nfts where symbol = ?")
   }
 
   close() {
@@ -143,9 +166,11 @@ class Database {
     if (this.onAddTransaction) this.onAddTransaction(txid)
   }
   setTransaction(txid, obj) {
-    //    this.setTransactionBytesStmt = this.db.prepare('UPDATE tx SET command = ? ,publicKey= ? ,inputAddress = ? ,output = ? ,"in" = ? ,out = ? WHERE txid = ?')
-
     this.setTransactionBytesStmt.run(obj.command, obj.publicKey, obj.inputAddress, JSON.stringify(obj.output), JSON.stringify(obj.out), JSON.stringify(obj.in), txid);
+  }
+  saveTransaction(txid, rawtx) {
+    const bytes = Buffer.from(rawtx, 'hex')
+    this.setTransactionBytesStmt.run(bytes, txid)
   }
 
   setTransactionHeight(txid, height) {
@@ -217,33 +242,40 @@ class Database {
   // --------------------------------------------------------------------------
   // resolver
   // --------------------------------------------------------------------------
-  getAllPaytx(type){
+  getAllPaytx(type) {
     return this.db.prepare('SELECT * from paytx where type = ?').all(type);
   }
-  deletePaytx(domain,type){
-    this.db.prepare('DELETE from paytx where domain = ? AND type = ?').run(domain,type);
+  deletePaytx(domain, type) {
+    this.db.prepare('DELETE from paytx where domain = ? AND type = ?').run(domain, type);
   }
-  getPaytx(domain,type){
-    return this.getPayTxStmt.get(domain,type);
+  getPaytx(domain, type) {
+    return this.getPayTxStmt.get(domain, type);
   }
-  setPaytx(obj){
-    this.setPayTxStmt.run(obj.domain,obj.payment_txid,obj.tld,obj.protocol,obj.publicKey,obj.raw_tx,obj.ts,obj.type);
+  setPaytx(obj) {
+    this.setPayTxStmt.run(obj.domain, obj.payment_txid, obj.tld, obj.protocol, obj.publicKey, obj.raw_tx, obj.ts, obj.type);
   }
   getUnresolvedTX(count) {
     let list = [];
-    this.transaction(() => {
-      let lastBlockId = +this.getLastResolvedIdStmt.get().value
-      list = this.getTransactionAboveIdStmt.raw(false).all(lastBlockId, count);
-      if (list) {
-        let rtx;
-        for (let i = 0; i < list.length; i++) {
-          rtx = list[i];
-          rtx.output = JSON.parse(rtx.output);
-        }
-        //        this.setLastResolvedIdStmt.run(lastBlockId)
-      }
 
-    })
+    let lastBlockId = +this.getLastResolvedIdStmt.get().value
+    list = this.getTransactionAboveIdStmt.raw(false).all(lastBlockId, count);
+    if (list) {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].bytes == null) {
+          list.splice(i)
+          break;
+        }
+        const rawtx = Buffer.from(list[i].bytes).toString('hex')
+        const res = Parser.parseRaw(rawtx, list[i].height)
+        if(res.code==0) list[i] = {...res.obj,...list[i]}
+        else {
+          list[i].output={err:res.msg}
+        }
+        delete list[i].bytes
+        //rtx.output = JSON.parse(rtx.output);
+      }
+      //        this.setLastResolvedIdStmt.run(lastBlockId)
+    }
     return list;
   }
   saveLastResolvedId(id) {
@@ -256,7 +288,7 @@ class Database {
     }
     return null;
   }
-  queryTags(expression){
+  queryTags(expression) {
     let sql = "select DISTINCT tag from tags where tag like ?";
     return this.dmdb.prepare(sql).all(expression);
   }
@@ -273,41 +305,41 @@ class Database {
   queryKeys({ v, num, startID, tags }) {
     let sql = "select id,key,value,tags from keys ";
     if (v != "1") {
-        return { code: 1, message: "invalid v" };
+      return { code: 1, message: "invalid v" };
     }
     if (tags != null) {
-        let hasOr = (tags.indexOf(';') != -1);
-        const hasAnd = (tags.indexOf('+') != -1);
-        if (hasOr && hasAnd) {
-            return { code: 1, message: "Using both ; and + is not supported yet" };
-        }
-        if (!hasAnd && !hasOr) hasOr = true;
-        if (hasOr) {
-            const orTag = tags.split(';').join("','");
-            sql += "where key in (select key from tags where tag in ('" + orTag + "')) ";
-        }
-        if (hasAnd) {
-            const addTag = tags.split('+').join("','");
-            const count = tags.split('+').length;
-            sql += "where key in (select key from tags where tag in ('" + addTag + "') group by key having count(*)>=" + count + ") "
-        }
+      let hasOr = (tags.indexOf(';') != -1);
+      const hasAnd = (tags.indexOf('+') != -1);
+      if (hasOr && hasAnd) {
+        return { code: 1, message: "Using both ; and + is not supported yet" };
+      }
+      if (!hasAnd && !hasOr) hasOr = true;
+      if (hasOr) {
+        const orTag = tags.split(';').join("','");
+        sql += "where key in (select key from tags where tag in ('" + orTag + "')) ";
+      }
+      if (hasAnd) {
+        const addTag = tags.split('+').join("','");
+        const count = tags.split('+').length;
+        sql += "where key in (select key from tags where tag in ('" + addTag + "') group by key having count(*)>=" + count + ") "
+      }
     }
     if (startID != 0) {
-        sql += "and id>" + startID + " ";
+      sql += "and id>" + startID + " ";
     }
     if (num) {
-        sql += "limit " + num;
+      sql += "limit " + num;
     }
     sql += ";";
     return {
-        code: 0,
-        data: this.dmdb.prepare(sql).all()
+      code: 0,
+      data: this.dmdb.prepare(sql).all()
     }
   }
   readKey(keyName) {
     try {
       const ret = this.readKeyStmt.get(keyName);
-      if(ret)
+      if (ret)
         return JSON.parse(ret.value);
     } catch (e) {
       this.logger.error(e)
@@ -318,7 +350,7 @@ class Database {
     for (var item in nidObj.keys) {
       const value = JSON.stringify(nidObj.keys[item]);
       const keyName = item + "." + nidObj.domain;
-      const tags = nidObj.tag_map[item+'.'];
+      const tags = nidObj.tag_map[item + '.'];
       this.saveKeysStmt.run(keyName, value, tags, value, tags)
       if (value.length > 512) {
         nidObj.keys[item] = '$truncated';
@@ -327,7 +359,7 @@ class Database {
     for (var item in nidObj.users) {
       const value = JSON.stringify(nidObj.users[item]);
       const keyName = item + "@" + nidObj.domain;
-      const tags = nidObj.tag_map[item+'@'];
+      const tags = nidObj.tag_map[item + '@'];
       this.saveKeysStmt.run(keyName, value, tags, value, tags)
       if (value.length > 512) {
         nidObj.keys[item] = '$truncated';
@@ -336,21 +368,45 @@ class Database {
   }
   queryDomains(field, value) {
     if (field != null) {
-        return this.queryDomainsStmt.all(value);
+      return this.queryDomainsStmt.all(value);
     }
     return null;
-}
+  }
+  nftCreate(nft){
+    this.addNFTStmt.run(nft.symbol, JSON.stringify(nft.attributes), JSON.stringify(nft.data), JSON.stringify(nft.attributes), JSON.stringify(nft.data))
+    this.deleteNFTStmt.run(nft.symbol+'.testing')
+  }
+  saveNFT(obj) {
+    if (obj.nft_log) {
+      for (const symbol in obj.nft_log) {
+        const log = obj.nft_log[symbol]
+        this.NFTappendLogStmt.run(log, symbol)
+      }
+      obj.nft_log = {}
+    }
+
+  }
   saveDomainObj(obj) {
     try {
       this.transaction(() => {
         this.saveKeys(obj);
         this.saveTags(obj);
+        this.saveNFT(obj);
         this.saveDomainObjStmt.run(obj.domain, obj.nid, obj.owner, obj.owner_key, obj.status, obj.last_txid, obj.lastUpdateBlockId, JSON.stringify(obj), obj.tld,
           obj.nid, obj.owner, obj.owner_key, obj.status, obj.last_txid, obj.lastUpdateBlockId, JSON.stringify(obj), obj.tld)
       })
     } catch (e) {
       this.logger.error(e)
     }
+  }
+  //------------------------------NFT-----------------------------------
+  getNFT(symbol) {
+    const res = this.getNFTStmt.get(symbol)
+    if (res) {
+      res.attributes = JSON.parse(res.attributes)
+      res.data = JSON.parse(res.data)
+    }
+    return res
   }
 }
 

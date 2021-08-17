@@ -4,7 +4,8 @@ const { CMD, DEF } = require("./def")
 //const DomainTool = require('./domainTool')
 
 class Parser_Domain {
-
+    static init(db){
+    }
     static parse(rtx) {
         let ret = {
             code: -1, msg: ""
@@ -75,7 +76,8 @@ class CMD_REGISTER {
             if (rtx.out[0].s7)
                 output.agent = rtx.out[0].s7;
         } catch (err) {
-            console.log(err);
+            console.error(rtx.txid)
+            console.log(err)
             output.err = "Invalid format for RegisterOutput class."
             return output
         }
@@ -291,14 +293,16 @@ class CMD_KEYUSER {
             let authorized = false; //check admin
             for (var name in nidObj.admins) {
                 var adminAddress = nidObj.admins[name];
-                if (adminAddress == Util.getAddressFromPublicKey(rxOwner)) {
+                if (adminAddress == Util.getAddressFromPublicKey(rtx.publicKey)) {
                     authorized = true;
                 }
             }
             if (!authorized)
                 return null;
         }
-        //nidObj = DomainTool.updateNidObjFromRX(nidObj, rx);
+        if(nidObj.domain=="hello123.b"){
+            console.log('found')
+        }
         if (rtx.command == CMD.KEY) {
             // Change deep merge to shallow merge.
             for (const key in rtx.output.value) {
@@ -325,291 +329,5 @@ class CMD_KEYUSER {
         return nidObj
     }
 }
-/**
-* A class represents for transaction output scripts.
-*/
-class TransactionOutput {
-    /**
-     * @param {Array} rtx Array of tx output.
-     */
-    constructor(rtx) {
 
-        this.protocol = rtx.out[0].s2;
-        this.nid = rtx.out[0].s3.toLowerCase();
-        this.cmd = rtx.out[0].s4.toLowerCase();
-        this.domain = this.nid + "." + Util.getTLDFromRegisterProtocol(this.protocol)[0];
-        //this.agent = rtx.out[0].s6; // optional agent in s6.
-        if (!Util.isValidString(this.nid)) {
-            throw ("Invalid NID string");
-        }
-    }
-}
-/**
- * Transaction output for metadata tx.
- * @extends {TransactionOutput}
- */
-class MetaDataOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-        this.bitfs = null;
-        try {
-            if (rtx.out[0].s5 != null) {
-                var extra = JSON.parse(rtx.out[0].s5);
-                this.value = extra;
-            } else if (rtx.out[0].ls5 != null) {
-                var extra = JSON.parse(rtx.out[0].ls5);
-                this.value = extra;
-            } else if (rtx.out[0].f5 != null) {
-                this.bitfs = rtx.out[0].f5;
-                this.value = {};
-            }
-            if (rtx.out[0].s6) {
-                try {
-                    const tags = JSON.parse(rtx.out[0].s6).tags;
-                    if (tags)
-                        this.cmd == "key"
-                            ? (this.tags = tags)
-                            : (this.utags = tags);
-                } catch (e) { }
-            }
-
-            if (typeof this.value != "object") {
-                throw new InvalidFormatOutputError(
-                    "Invalid key transaction record. Record must be object!"
-                );
-            }
-        } catch (err) {
-            throw new InvalidFormatOutputError(
-                "Invalid format for MetaDataOutput class."
-            );
-        }
-    }
-}
-/**
- * Transaction output for admin tx.
- * @extends {TransactionOutput}
- */
-class AdminOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-        try {
-            var extra = JSON.parse(rtx.out[0].s5);
-            this.key = Object.keys(extra)[0];
-            this.value = extra[this.key];
-        } catch (err) {
-            throw new InvalidFormatOutputError(
-                "Invalid format for MetaDataOutput class."
-            );
-        }
-    }
-}
-
-/**
- * Transaction output for register tx.
- * @extends {TransactionOutput}
- */
-class RegisterOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-
-        try {
-            // Suppose the output array has a fixed order.
-            // output 0 - OP_RETURN.
-            this.owner_key = rtx.out[0].s5;
-            if (rtx.out[0].s6 != null) {
-                var extra = JSON.parse(rtx.out[0].s6);
-                this.payTx = extra["pay_txid"];
-            }
-            this.agent = rtx.out[0].s7;
-        } catch (err) {
-            console.log(err);
-            throw new InvalidFormatOutputError(
-                "Invalid format for RegisterOutput class."
-            );
-        }
-
-        if (this.owner_key == null || this.owner_key == "") {
-            throw new InvalidFormatOutputError(
-                "Invalid format for RegisterOutput class1."
-            );
-        }
-
-        try {
-            Util.getAddressFromPublicKey(this.owner_key);
-        } catch (err) {
-            console.log(err);
-            throw new InvalidFormatOutputError(
-                "Invalid format for RegisterOutput class2."
-            );
-        }
-        let addr = Util.getAddressFromPublicKey(rtx.publicKey);
-        let authorsities = Util.getAdmins(
-            this.protocol,
-            rtx.height
-        );
-        if (!authorsities.includes(addr)) {
-            throw "Input address not in authorities.";
-        }
-    }
-}
-
-/**
- * Transaction output for nop tx.
- * @extends {TransactionOutput}
- */
-class NopOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-        this.agent = null;
-    }
-}
-
-/**
- * Transaction output for sell tx.
- * @extends {TransactionOutput}
- */
-class SellOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-        try {
-            var extra = JSON.parse(rtx.out[0].s5);
-            this.buyer = extra["buyer"];
-            this.note = extra["note"];
-            this.price = Number(extra["price"]);
-            this.expire = Number(extra["expire"]);
-            this.clear_data = extra["clear_data"];
-        } catch (err) {
-            throw new InvalidFormatOutputError(
-                "Invalid format for SellOutput class."
-            );
-        }
-    }
-}
-
-/**
- * Transaction output for buy tx.
- * @extends {TransactionOutput}
- */
-class BuyOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-
-        // Suppose the output array has a fixed order.
-        // output 0 - OP_RETURN.
-        try {
-            var extra = JSON.parse(rtx.out[0].s6);
-            this.transferTx = extra["sell_txid"];
-            this.payTxid = extra["pay_txid"];
-            this.agent = rtx.out[0].s7;
-            this.owner_key = rtx.out[0].s5;
-        } catch (err) {
-            throw new InvalidFormatOutputError(
-                "Invalid format for BuyOutput class."
-            );
-        }
-        let addr = Util.getAddressFromPublicKey(rtx.publicKey);
-        let authorsities = Util.getAdmins(
-            this.protocol,
-            rtx.height
-        );
-        if (!authorsities.includes(addr)) {
-            ret.msg = "Input address not in authorities.";
-            return ret;
-        }
-    }
-}
-
-/**
- * Transaction output for transfer tx.
- * @extends {TransactionOutput}
- */
-class TransferOutput extends TransactionOutput {
-    /**
-     * @param {Array} rtx.out Array of tx output.
-     */
-    constructor(rtx) {
-        super(rtx);
-
-        // Suppose the output array has a fixed order.
-        // output 0 - OP_RETURN.
-        // output 1:Identity
-        // output 2:nUTXO to new owner
-        // output 3:1000 sat admin fee to payment address
-        try {
-            this.owner_key = rtx.out[0].s5.toLowerCase();
-            this.transfer_fee = rtx.out[3].e.v;
-            this.payment_addr = rtx.out[3].e.a;
-        } catch (err) {
-            throw new InvalidFormatOutputError(
-                "Invalid format for BuyOutput class."
-            );
-        }
-
-        if (this.transfer_fee < 1000) {
-            throw new InvalidFormatOutputError(
-                "Transfer command must pay admin fee 1000 satoshi."
-            );
-        }
-
-        let adminAddr = Util.getTLDFromRegisterProtocol(this.protocol)[1];
-        if (this.payment_addr != adminAddr) {
-            throw new InvalidFormatOutputError(
-                "Payment failed, admin address is incorrect."
-            );
-        }
-    }
-}
-
-/**
- * InvalidFormatOutputError
- */
-class InvalidFormatOutputError extends Error {
-    //...
-}
-
-/**
- * Signature Verification Failed Error
- */
-class SignatureValationError extends Error {
-    //...
-}
-
-/**
- * IllegalOutputError
- */
-class IllegalOutputError extends Error {
-    //...
-}
-
-/**
- * IllegalCommandError
- */
-class IllegalCommandError extends Error {
-    //...
-}
-
-/**
- *
- */
-class IllegalNBDomainError extends Error {
-    //...
-}
-module.exports = { Parser_Domain, CMD_KEYUSER, CMD_NOP, CMD_REGISTER, CMD_BUY, CMD_SELL, CMD_ADMIN, CMD_TRANSER }
+module.exports = { Parser_Domain }

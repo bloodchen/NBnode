@@ -7,7 +7,10 @@ var express = require('express');
 var bodyParser = require("body-parser");
 var cors = require('cors');
 const { ERR } = require('../../def')
-const {Util} = require('../../util.js');
+const { Util } = require('../../util.js')
+const Parser = require('../../parser')
+const bsv = require('bsv');
+const { json } = require('body-parser');
 var app = express();
 
 app.use(cors());
@@ -45,16 +48,54 @@ app.get('/', async function (req, res, next) {
         return;
     }
     try {
-            const ret = await resolver.readDomain(domain, f);
-            res.json(ret);
+        const ret = await resolver.readDomain(domain, f);
+        res.json(ret);
     } catch (err) {
         console.error(err);
         res.json({ code: 99, message: err.message });
     }
 });
+app.get('/d/:domain', async function (req, res) {
+    const domain = req.params['domain']
+    res.json(await resolver.readDomain(domain, false));
+})
+app.get('/df/:domain', async function (req, res) {
+    const domain = req.params['domain']
+    res.json(await resolver.readDomain(domain, true));
+})
+app.get('/util/verify', async function (req, res) {
+    try {
+        const domain = req.query['domain']
+        let publicKey = req.query['publicKey']
+        const strSig = req.query['sig']
+        const data = req.query['data']
+        if (domain) {
+            const ret = await resolver.readDomain(domain, false)
+            if (ret.code != 0) {
+                res.json({ code: -1, message: ret.message })
+                return
+            }
+            publicKey = ret.obj.owner_key
+        }
+
+        let sig = bsv.crypto.Signature.fromString(strSig)
+        let pubKey = bsv.PublicKey.fromString(publicKey)
+        let hash2 = bsv.crypto.Hash.sha256(bsv.deps.Buffer.from(data, 'hex'))
+        res.json({ code: bsv.crypto.ECDSA.verify(hash2, sig, pubKey) ? 0 : -1 })
+
+    } catch (e) {
+        res.json({ code: -1, message: e.message })
+    }
+})
+
 app.post('/sendTx', async function (req, res) {
     const obj = req.body;
-    let ret = await Util.sendRawtx(obj.rawtx);
+    let ret = Parser.parseRaw(obj.rawtx, -1, true);
+    if (ret.code != 0 || !ret.obj.output || ret.obj.output.err) {
+        res.json({ code: -1, message: ret.msg })
+        return
+    }
+    ret = await Util.sendRawtx(obj.rawtx);
     res.json(ret);
 });
 app.get('/queryKeys', function (req, res) {

@@ -24,7 +24,8 @@ const CMD = {
     NFT_CREATE: "nft.create",
     NFT_TRANSFER: "nft.transfer",
     NFT_SELL: "nft.sell",
-    NFT_BUY: "nft.buy"
+    NFT_BUY: "nft.buy",
+    NFT_REFILL: "nft.refill"
 };
 const DEF = {
     BLOCK_SIGNATURE_UPDATE: 637628,
@@ -52,6 +53,7 @@ class NIDObject {
         this.user_update_tx = {};
         this.admins = [];
         this.admin_update_tx = 0;
+        this.nft_log = {};
         this.sell_info = null;
         this.tf_update_tx = 0;
         this.lastUpdateBlockId = 0;

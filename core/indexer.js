@@ -33,8 +33,6 @@ class Indexer {
     this.onBlock = null
     this.onReorg = null
 
-    this.parser = new Parser;
-
     this.api = api
     this.network = network
     this.startHeight = startHeight
@@ -47,6 +45,7 @@ class Indexer {
     
     this.crawler = new Crawler(api)
     this.resolver = new Resolver(this.database)
+    Parser.init(this.database)
 
     this.database.onReadyToExecute = this._onReadyToExecute.bind(this)
     this.database.onAddTransaction = this._onAddTransaction.bind(this)
@@ -69,7 +68,7 @@ class Indexer {
   async restart(){
     await this.stop();
     fs.copyFileSync(this.database.path,__dirname+"/public/txs.db");
-    fs.copyFileSync(this.database.dmpath,__dirname+"/public/domains.db");
+    //fs.copyFileSync(this.database.dmpath,__dirname+"/public/domains.db");
     process.kill(process.pid,'SIGINT')
   }
   async start () {
@@ -288,7 +287,7 @@ class Indexer {
       const ts = this.database.getTransactionTime(txid);
       let meta = null
       try{
-        meta = Parser.parseRaw(rawtx,height,ts);
+        meta = Parser.verify(rawtx,height);
         if(meta.code!=0){
           this.logger.warn(txid,":"+meta.msg);
           this.database.deleteTransaction(txid);
@@ -299,7 +298,8 @@ class Indexer {
         this.database.deleteTransaction(txid);
         return;
       }
-      this.database.setTransaction(txid, meta.obj)
+      //this.database.setTransaction(txid, meta.obj)
+      this.database.saveTransaction(txid,rawtx)
       return
     
 

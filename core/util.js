@@ -58,7 +58,7 @@ class Util {
             }
         })
         let ret = await miner.tx.push(rawtx);
-        ret.code = ret.txid ? 0 : 1 ;
+        ret.code = ret.returnResult== 'success' ? 0 : 1 ;
         return ret;
         
     }

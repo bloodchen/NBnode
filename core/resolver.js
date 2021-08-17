@@ -1,5 +1,5 @@
 const { DomainTool } = require('./domainTool')
-const { ERR } = require('./def')
+const { ERR, CMD } = require('./def')
 const Parser = require('./parser')
 
 
@@ -18,6 +18,9 @@ function reduceKeys_(data, includeKeyUser) {
     if (includeKeyUser) {
         allowed.push('users');
         allowed.push('keys');
+    }
+    if(data.nfts){
+        allowed.push('nfts');
     }
 
     const filtered = Object.keys(data)
@@ -117,7 +120,6 @@ class Resolver {
             obj = this.db.loadDomain(fullDomain)
             if (obj) {
                 obj = reduceKeys_(obj, true)
-                obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
                 if (forceFull) { //expand $truncated keys
                     for (const key in obj.keys) {
                         if (obj.keys[key] === "$truncated") {
@@ -125,6 +127,13 @@ class Resolver {
                         }
                     }
                 }
+                if(obj.nfts){
+                    for(let symbol in obj.nfts){
+                        if(this.db.getNFT(symbol))continue
+                        delete obj.nfts[symbol] //remove the non-exist nft
+                    }
+                }
+                obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
                 return { code: 0, obj: obj }
             }
             let ret = await DomainTool.fetchDomainAvailibility(fullDomain);
@@ -153,7 +162,8 @@ class Resolver {
                 // Add transaction to Nid one by one in their creation order
                 try {
                     rtxArray.forEach((rtx, _) => {
-                        if (!rtx.output||rtx.output.err) return;
+                        if (!rtx.output||!rtx.output.domain) return
+                        if(rtx.command==CMD.REGISTER&&rtx.output.err) return
                         let domain = rtx.output.domain
                         if (!(domain in g_nidObjMap)) {
                             let onDiskNid = this.db.loadDomain(domain)
@@ -163,9 +173,8 @@ class Resolver {
                                 g_nidObjMap[domain] = onDiskNid
                             }
                         }
-                        //const obj = DomainTool.fillNIDFromTX(g_nidObjMap[domain], [rtx])
                         //const obj = DomainTool.fillNIDFromTX(g_nidObjMap[domain], rtx)
-                        const obj = Parser.fillObj(g_nidObjMap[domain],rtx)
+                        const obj = Parser.fillObj(g_nidObjMap[domain],rtx,g_nidObjMap)
                         if (obj){
                             g_nidObjMap[domain] = obj
                             g_nidObjMap[domain].dirty = true
@@ -181,8 +190,9 @@ class Resolver {
                 for (let domain in g_nidObjMap) {
                     if (g_nidObjMap[domain].owner_key != null && g_nidObjMap[domain].dirty === true) {
                         console.log("updating:", domain)
+                        delete g_nidObjMap[domain].dirty
                         this.db.saveDomainObj(g_nidObjMap[domain])
-                        g_nidObjMap[domain].dirty = false
+                        
                     }
                 }
                 if (lastResolvedId != 0)
