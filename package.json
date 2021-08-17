@@ -8,27 +8,23 @@
   "author": "nbdomain-dev",
   "license": "MIT",
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "axios": "^0.21.1",
     "better-sqlite3": "^7.1.0",
-    "bitidentity": "^1.0.36",
-    "bitsocket-connect": "1.4.0",
     "body": "^5.1.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
-    "eventsource": "^1.0.7",
     "express": "^4.17.1",
-    "filepay": "^2.2.12",
     "greenlock-express": "^4.0.3",
     "http-proxy-middleware": "^1.0.6",
     "minercraft": "0.0.8",
-    "nblib": "^1.0.71",
+    "morgan": "^1.10.0",
+    "event-stream": "^4.0.1",
+    "eventsource": "^1.1.0",
+    "nbsdk": "^1.0.15",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
-    "node-ipc": "^9.1.4",
-    "planariette": "^1.1.0",
-    "routes-router": "^4.3.1",
-    "sqlite3": "^4.1.1"
-  },
-  "devDependencies": {}
+    "reconnecting-eventsource": "^1.1.0"
+  }
 }

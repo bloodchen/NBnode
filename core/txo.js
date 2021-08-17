@@ -65,7 +65,7 @@ const TXO = {
    */
   inputFromTx(src, index) {
     const address = src.script.isPublicKeyHashIn() ?
-      Address.fromPublicKey(PublicKey.fromBuffer(src.script.chunks[1].buf)).toString() :
+      src.script.toAddress() :
       false;
 
     const input = {
@@ -75,7 +75,7 @@ const TXO = {
         i: src.outputIndex,
         a: address
       },
-      seq: src.nSequence,
+      seq: src.sequenceNumber,
       len: src.script.chunks.length
     }
 
@@ -163,7 +163,7 @@ const TXO = {
     return TxIn.fromObject({
       txHashBuf: Buffer.from(src.e.h, 'hex').reverse(),
       txOutNum: src.e.i,
-      nSequence: src.seq,
+      sequenceNumber: src.seq,
       script: script,
       scriptVi: VarInt.fromNumber(script.toBuffer().length)
     })
