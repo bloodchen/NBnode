@@ -55,9 +55,10 @@ app.get('/', async function (req, res, next) {
         res.json({ code: 99, message: err.message });
     }
 });
-app.get('/d/:domain', async function (req, res) {
+app.get('/d/:domain/:his?', async function (req, res) {
     const domain = req.params['domain']
-    res.json(await resolver.readDomain(domain, false));
+    const history = req.params['his']
+    res.json(await resolver.readDomain(domain, false,history));
 })
 app.get('/df/:domain', async function (req, res) {
     const domain = req.params['domain']

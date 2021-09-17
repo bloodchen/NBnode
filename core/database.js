@@ -338,13 +338,47 @@ class Database {
   }
   readKey(keyName) {
     try {
+      const keyLenName = keyName+"/len";
       const ret = this.readKeyStmt.get(keyName);
-      if (ret)
-        return JSON.parse(ret.value);
+      if (ret){
+        const lenRet = this.readKeyStmt.get(keyLenName);
+        let value = JSON.parse(ret.value);
+        if(lenRet)value.history = +lenRet.value;
+        return value;
+      }
     } catch (e) {
       this.logger.error(e)
     }
     return null;
+  }
+  readKeyHistory(fullName,pos){
+    const hisKey = fullName+"/"+pos;
+    const ret = this.readKeyStmt.get(hisKey);
+    if(ret){
+      let value = JSON.parse(ret.value);
+      return value;
+    }
+    return null;
+  }
+  saveKeyHistory(nidObj,keyName,value,txid){
+    try {
+      this.transaction(() => {
+        const lenKey = keyName+"."+nidObj.domain+"/len";
+        let lenRet = this.readKeyStmt.get(lenKey);
+        let count = 0;
+        if(lenRet)count = +lenRet.value;
+        count++;
+        this.saveKeysStmt.run(lenKey, count.toString(), null, count.toString(), null); //save len
+        const hisKey = keyName+"."+nidObj.domain+"/"+count;
+        const hisObj = {
+          value:value,
+          txid:txid
+        }
+        this.saveKeysStmt.run(hisKey, JSON.stringify(hisObj), null, JSON.stringify(hisObj), null); //save len
+      })
+    } catch (e) {
+      this.logger.error(e)
+    }
   }
   saveKeys(nidObj) {
     for (var item in nidObj.keys) {
