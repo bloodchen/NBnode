@@ -11,6 +11,7 @@ const { Util } = require('../../util.js')
 const Parser = require('../../parser')
 const bsv = require('bsv');
 const { json } = require('body-parser');
+const axios = require('axios');
 var app = express();
 
 app.use(cors());
@@ -63,6 +64,12 @@ app.get('/d/:domain/:his?', async function (req, res) {
 app.get('/df/:domain', async function (req, res) {
     const domain = req.params['domain']
     res.json(await resolver.readDomain(domain, true));
+})
+app.get('/address/:address/balance', async function (req, res) {
+    const address = req.params['address']
+    const url = `https://api.whatsonchain.com/v1/bsv/main/address/${address}/balance`;
+    const json = (await axios.get(url)).data;
+    res.json(json);
 })
 app.get('/util/verify', async function (req, res) {
     try {
