@@ -87,6 +87,9 @@ class Parser {
         let retObj = null
         nidObj.lastUpdateheight = rx.height;
         nidObj.last_txid = rx.txid
+        if(rx.txid=="5c23c8f8ed684ecb23b5a83b10507a4ef38de2fc3816acd0fdbbd312143dacda"){
+            console.log("found")
+        }
         if(rx.output.err){
             return null
         }

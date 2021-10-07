@@ -208,9 +208,9 @@ class CMD_NFT_REFILL {
     }
     static fillObj(nidObj,rtx){
         if (nidObj.owner_key == null || nidObj.owner_key != rtx.publicKey) return null
-        if(CMD_NFT_REFILL._verify(output).err) return null
+        if(CMD_NFT_REFILL._verify(rtx.output).err) return null
         const amount = rtx.output.para.amount
-        const symbol =  Object.keys(output.para)[0]
+        const symbol =  Object.keys(rtx.output.para)[0]
         if(!nidObj.nfts[symbol])nidObj.nfts[symbol]={}
         nidObj.nfts[symbol]['0'].amount+=amount
         return nidObj

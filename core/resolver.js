@@ -19,7 +19,7 @@ function reduceKeys_(data, includeKeyUser) {
         allowed.push('users');
         allowed.push('keys');
     }
-    if(data.nfts){
+    if (data.nfts) {
         allowed.push('nfts');
     }
 
@@ -87,7 +87,7 @@ class Resolver {
         });
         return all;
     }
-    readSubdomain(fullDomain) {
+    readSubdomain(fullDomain, history = null) {
         let baseDomain, subDomain;
         const dd = fullDomain.split('.');
         if (dd.length < 2) return null;
@@ -102,14 +102,19 @@ class Resolver {
         }
         const obj = this.db.loadDomain(baseDomain)
         if (obj) {
-            const subObj = this.db.readKey(fullDomain)
-            if (subObj) {
-                return { code: 0, obj: subObj, txid: obj.update_tx[subDomain] }
+            if (history) {
+                const subObj = this.db.readKeyHistory(fullDomain, history)
+                return subObj ? { code: 0, obj: subObj.value, txid: subObj.txid } : null
+            } else {
+                const subObj = this.db.readKey(fullDomain)
+                if (subObj) {
+                    return subObj ? { code: 0, obj: subObj, txid: obj.update_tx[subDomain] } : null
+                }
             }
         }
         return null;
     }
-    async readDomain(fullDomain, forceFull) {
+    async readDomain(fullDomain, forceFull, history = null) {
         const dd = fullDomain.split('.')
         if (dd.length < 2) return null;
         let obj = null
@@ -127,9 +132,9 @@ class Resolver {
                         }
                     }
                 }
-                if(obj.nfts){
-                    for(let symbol in obj.nfts){
-                        if(this.db.getNFT(symbol))continue
+                if (obj.nfts) {
+                    for (let symbol in obj.nfts) {
+                        if (this.db.getNFT(symbol)) continue
                         delete obj.nfts[symbol] //remove the non-exist nft
                     }
                 }
@@ -140,7 +145,7 @@ class Resolver {
             ret.code = ERR.NOTFOUND;
             return ret;
         }
-        const ret = this.readSubdomain(fullDomain);
+        const ret = this.readSubdomain(fullDomain, history);
         if (ret) return ret;
         return { code: ERR.KEY_NOTFOUND, message: fullDomain + " not found" }
 
@@ -162,8 +167,8 @@ class Resolver {
                 // Add transaction to Nid one by one in their creation order
                 try {
                     rtxArray.forEach((rtx, _) => {
-                        if (!rtx.output||!rtx.output.domain) return
-                        if(rtx.command==CMD.REGISTER&&rtx.output.err) return
+                        if (!rtx.output || !rtx.output.domain) return
+                        if (rtx.command == CMD.REGISTER && rtx.output.err) return
                         let domain = rtx.output.domain
                         if (!(domain in g_nidObjMap)) {
                             let onDiskNid = this.db.loadDomain(domain)
@@ -174,13 +179,13 @@ class Resolver {
                             }
                         }
                         //const obj = DomainTool.fillNIDFromTX(g_nidObjMap[domain], rtx)
-                        const obj = Parser.fillObj(g_nidObjMap[domain],rtx,g_nidObjMap)
-                        if (obj){
+                        const obj = Parser.fillObj(g_nidObjMap[domain], rtx, g_nidObjMap)
+                        if (obj) {
                             g_nidObjMap[domain] = obj
                             g_nidObjMap[domain].dirty = true
 
                         }
-                            
+
                         lastResolvedId = rtx.id
                     })
                 } catch (e) {
@@ -192,7 +197,7 @@ class Resolver {
                         console.log("updating:", domain)
                         delete g_nidObjMap[domain].dirty
                         this.db.saveDomainObj(g_nidObjMap[domain])
-                        
+
                     }
                 }
                 if (lastResolvedId != 0)

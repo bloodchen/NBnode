@@ -5,6 +5,7 @@ const { CMD, DEF } = require("./def")
 
 class Parser_Domain {
     static init(db){
+        Parser_Domain.db = db;
     }
     static parse(rtx) {
         let ret = {
@@ -14,34 +15,6 @@ class Parser_Domain {
             const handler = Parser_Domain.getAllCommands()[rtx.command]
             if(handler)
                 rtx.output = handler.parseTX(rtx)
-           /* if (rtx.command === CMD.REGISTER) {
-                // rtx.output = new RegisterOutput(rtx);
-                rtx.output = CMD_REGISTER.parseTX(rtx)
-            }
-            if (rtx.command === CMD.SELL) {
-                //rtx.output = new SellOutput(rtx);
-                rtx.output = CMD_SELL.parseTX(rtx)
-            }
-            if (rtx.command === CMD.NOP) {
-                //rtx.output = new NopOutput(rtx);
-                rtx.output = CMD_NOP.parseTX(rtx);
-            }
-            if (rtx.command === CMD.BUY) {
-                //rtx.output = new BuyOutput(rtx);
-                rtx.output = CMD_BUY.parseTX(rtx)
-            }
-            if (rtx.command === CMD.ADMIN) {
-                //rtx.output = new AdminOutput(rtx);
-                rtx.output = CMD_ADMIN.parseTX(rtx)
-            }
-            if (rtx.command === CMD.KEY || rtx.command === CMD.USER) {
-                //rtx.output = new MetaDataOutput(rtx);
-                rtx.output = CMD_KEYUSER.parseTX(rtx)
-            }
-            if (rtx.command === CMD.TRANSFER) {
-                //rtx.output = new TransferOutput(rtx);
-                rtx.output = CMD_TRANSER.parseTX(rtx)
-            } */
             if (!rtx.output) {
                 ret.msg = `Not a valid output: ${rtx.txid}`;
                 return ret;
@@ -263,12 +236,14 @@ class CMD_KEYUSER {
     static parseTX(rtx) {
         let output = CMD_BASE.parseTX(rtx);
         try {
+            var value = null;
             if (rtx.out[0].s5 != null) {
-                var extra = JSON.parse(rtx.out[0].s5);
-                output.value = extra;
+                value = JSON.parse(rtx.out[0].s5);
             } else if (rtx.out[0].ls5 != null) {
-                var extra = JSON.parse(rtx.out[0].ls5);
-                output.value = extra;
+                value = JSON.parse(rtx.out[0].ls5);
+            }
+            if(value){
+                output.value = value;
             }
         } catch (e) {
             output.err = e.message
@@ -300,13 +275,14 @@ class CMD_KEYUSER {
             if (!authorized)
                 return null;
         }
-        if(nidObj.domain=="hello123.b"){
-            console.log('found')
-        }
         if (rtx.command == CMD.KEY) {
             // Change deep merge to shallow merge.
             for (const key in rtx.output.value) {
                 let lowerKey = key.toLowerCase();
+                const oldvalue = nidObj.keys[lowerKey];
+                if(oldvalue){
+                    Parser_Domain.db.saveKeyHistory(nidObj,lowerKey,oldvalue,nidObj.update_tx[lowerKey + '.']);
+                }
                 nidObj.keys[lowerKey] = rtx.output.value[key];
                 nidObj.update_tx[lowerKey + '.'] = rtx.txid;
                 if (rtx.output.tags) {
