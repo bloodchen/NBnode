@@ -59,7 +59,7 @@ app.get('/', async function (req, res, next) {
 app.get('/d/:domain/:his?', async function (req, res) {
     const domain = req.params['domain']
     const history = req.params['his']
-    res.json(await resolver.readDomain(domain, false,history));
+    res.json(await resolver.readDomain(domain, true,history));
 })
 app.get('/df/:domain', async function (req, res) {
     const domain = req.params['domain']
