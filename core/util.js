@@ -50,11 +50,11 @@ class Util {
     }
     static async sendRawtx(rawtx) {
         const miner = new Minercraft({
-            url: "https://merchantapi.matterpool.io",
-            //url: "https://www.ddpurse.com/openapi",
+            //url: "https://merchantapi.matterpool.io",
+            url: "https://merchantapi.taal.com",
             headers: {
                 "Content-Type": "application/json",
-                token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
+                //token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
             }
         })
         let ret = await miner.tx.push(rawtx);
