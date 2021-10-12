@@ -66,6 +66,7 @@ app.get('/d/:domain/:his?', async function (req, res) {
     }
     let ret = []
     for(item of domains){
+        if(item==='')continue;
         const result = await resolver.readDomain(item, false,history)
         ret.push(result)
     }
@@ -82,6 +83,7 @@ app.get('/df/:domain', async function (req, res) {
     let ret = []
     for(item of domains)
     {
+        if(item==='')continue;
         const result = await resolver.readDomain(item, true)
         ret.push(result)
     }
