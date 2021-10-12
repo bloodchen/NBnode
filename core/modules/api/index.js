@@ -59,11 +59,33 @@ app.get('/', async function (req, res, next) {
 app.get('/d/:domain/:his?', async function (req, res) {
     const domain = req.params['domain']
     const history = req.params['his']
-    res.json(await resolver.readDomain(domain, true,history));
+    const domains = domain.split(',')
+    if(domains.length===1){
+        res.json(await resolver.readDomain(domain, false,history))
+        return;
+    }
+    let ret = []
+    for(item of domains){
+        const result = await resolver.readDomain(item, false,history)
+        ret.push(result)
+    }
+    res.json(ret);
+    //res.json(await resolver.readDomain(domain, true,history));
 })
 app.get('/df/:domain', async function (req, res) {
     const domain = req.params['domain']
-    res.json(await resolver.readDomain(domain, true));
+    const domains = domain.split(',')
+    if(domains.length===1){
+        res.json(await resolver.readDomain(domain, true))
+        return;
+    }
+    let ret = []
+    for(item of domains)
+    {
+        const result = await resolver.readDomain(item, true)
+        ret.push(result)
+    }
+    res.json(ret);
 })
 app.get('/address/:address/balance', async function (req, res) {
     const address = req.params['address']

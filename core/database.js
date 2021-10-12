@@ -343,8 +343,9 @@ class Database {
       if (ret){
         const lenRet = this.readKeyStmt.get(keyLenName);
         let value = JSON.parse(ret.value);
-        if(lenRet)value.history = +lenRet.value;
-        return value;
+        let obj = {value:value};
+        if(lenRet)obj.history = +lenRet.value;
+        return obj;
       }
     } catch (e) {
       this.logger.error(e)

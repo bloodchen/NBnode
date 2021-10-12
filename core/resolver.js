@@ -104,11 +104,13 @@ class Resolver {
         if (obj) {
             if (history) {
                 const subObj = this.db.readKeyHistory(fullDomain, history)
-                return subObj ? { code: 0, obj: subObj.value, txid: subObj.txid } : null
+                return subObj ? { code: 0, domain:fullDomain, obj: subObj.value, txid: subObj.txid } : null
             } else {
                 const subObj = this.db.readKey(fullDomain)
                 if (subObj) {
-                    return subObj ? { code: 0, obj: subObj, txid: obj.update_tx[subDomain] } : null
+                    let retObj = { code: 0, domain:fullDomain, obj: subObj.value, txid: obj.update_tx[subDomain] }
+                    if(subObj.history) retObj.history = subObj.history;
+                    return retObj;
                 }
             }
         }
@@ -128,7 +130,7 @@ class Resolver {
                 if (forceFull) { //expand $truncated keys
                     for (const key in obj.keys) {
                         if (obj.keys[key] === "$truncated") {
-                            obj.keys[key] = this.db.readKey(key + "." + fullDomain);
+                            obj.keys[key] = this.db.readKey(key + "." + fullDomain).value;
                         }
                     }
                 }
@@ -139,9 +141,10 @@ class Resolver {
                     }
                 }
                 obj.truncated = Object.values(obj.keys).indexOf('$truncated') != -1 ? true : false
-                return { code: 0, obj: obj }
+                return { code: 0, obj: obj,domain:fullDomain }
             }
             let ret = await DomainTool.fetchDomainAvailibility(fullDomain);
+            ret.domain = fullDomain;
             ret.code = ERR.NOTFOUND;
             return ret;
         }
